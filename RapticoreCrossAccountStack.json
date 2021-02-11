@@ -1,0 +1,222 @@
+{
+    "Description": "Rapticore Cross Account IAM Role Deployment",
+    "Parameters": {
+        "RapticoreAccountId": {
+            "Type": "String",
+            "AllowedPattern": "[0-9]{12}",
+            "ConstraintDescription": "Please enter a valid AWS Account ID (provided by Rapticore)",
+            "Description": "The Rapticore Source AWS Account ID"
+        },
+        "RapticoreTenantId": {
+            "Type": "String",
+            "AllowedPattern": "[a-zA-Z][a-zA-Z0-9-]+[a-zA-Z0-9]",
+            "ConstraintDescription": "Please enter a valid Tenant ID (provided by Rapticore), must be at least three alphanumeric characters and not start or end with a dash",
+            "Description": "Your Rapticore Tenant ID"
+        }
+    },
+    "Resources": {
+        "RapticoreIAMRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": "sts:AssumeRole",
+                            "Condition": {
+                                "StringEquals": {
+                                    "sts:ExternalId": {
+                                        "Fn::Sub": "rapticore-${RapticoreTenantId}"
+                                    }
+                                }
+                            },
+                            "Effect": "Allow",
+                            "Principal": {
+                                "AWS": {
+                                    "Fn::Sub": "arn:${AWS::Partition}:iam::${RapticoreAccountId}:root"
+                                }
+                            }
+                        }
+                    ],
+                    "Version": "2012-10-17"
+                },
+                "Description": {
+                    "Fn::Sub": "Rapticore Cross-Account Access Role for ${RapticoreTenantId}"
+                },
+                "ManagedPolicyArns": [
+                    {
+                        "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/job-function/ViewOnlyAccess"
+                    },
+                    {
+                        "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/SecurityAudit"
+                    }
+                ],
+                "Policies": [
+                    {
+                        "PolicyDocument": {
+                            "Statement": [
+                                {
+                                    "Action": "apigateway:GET",
+                                    "Effect": "Allow",
+                                    "NotResource": [
+                                        "arn:aws:apigateway:*::/apikey*",
+                                        "arn:aws:apigateway:*::/apikeys*"
+                                    ],
+                                    "Sid": "AllowApiGatewayReadOnlyExceptAPIKeys"
+                                },
+                                {
+                                    "Action": [
+                                        "cognito-identity:DescribeIdentityPool",
+                                        "cognito-identity:LookupDeveloperIdentity",
+                                        "cognito-identity:ListIdentities",
+                                        "cognito-identity:ListTagsForResource",
+                                        "cognito-identity:GetIdentityPoolRoles",
+                                        "cognito-identity:ListIdentityPools",
+                                        "cognito-identity:DescribeIdentity"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": "*",
+                                    "Sid": "AllowCognitoIdentityPoolsReadOnly"
+                                },
+                                {
+                                    "Action": [
+                                        "kinesisanalytics:ListTagsForResource",
+                                        "kinesisanalytics:GetApplicationState",
+                                        "kinesisanalytics:DescribeApplication",
+                                        "kinesisanalytics:DiscoverInputSchema",
+                                        "kinesisanalytics:ListApplications"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": "*",
+                                    "Sid": "AllowKinesisAnalyticsReadOnly"
+                                },
+                                {
+                                    "Action": [
+                                        "cognito-idp:AdminGetDevice",
+                                        "cognito-idp:AdminGetUser",
+                                        "cognito-idp:AdminListDevices",
+                                        "cognito-idp:AdminListGroupsForUser",
+                                        "cognito-idp:DescribeIdentityProvider",
+                                        "cognito-idp:DescribeResourceServer",
+                                        "cognito-idp:DescribeRiskConfiguration",
+                                        "cognito-idp:DescribeUserPool",
+                                        "cognito-idp:DescribeUserPoolClient",
+                                        "cognito-idp:DescribeUserPoolDomain",
+                                        "cognito-idp:GetIdentityProviderByIdentifier",
+                                        "cognito-idp:GetSigningCertificate",
+                                        "cognito-idp:GetUICustomization",
+                                        "cognito-idp:GetUserPoolMfaConfig",
+                                        "cognito-idp:ListDevices",
+                                        "cognito-idp:ListGroups",
+                                        "cognito-idp:ListIdentityProviders",
+                                        "cognito-idp:ListResourceServers",
+                                        "cognito-idp:ListTagsForResource",
+                                        "cognito-idp:ListUserPoolClients",
+                                        "cognito-idp:ListUserPools",
+                                        "cognito-idp:ListUsers",
+                                        "cognito-idp:ListUsersInGroup"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": "*",
+                                    "Sid": "AllowCognitoUserPoolsReadOnly"
+                                },
+                                {
+                                    "Action": [
+                                        "ecr:DescribeImageScanFindings",
+                                        "ecr:DescribeRepositories",
+                                        "ecs:DescribeClusters",
+                                        "ecs:DescribeContainerInstances",
+                                        "ecs:DescribeServices",
+                                        "ecs:DescribeTaskDefinition",
+                                        "ecs:DescribeTaskSets",
+                                        "ecs:DescribeTasks",
+                                        "ecs:ListAccountSettings",
+                                        "ecs:ListAttributes",
+                                        "ecs:ListClusters",
+                                        "ecs:ListContainerInstances",
+                                        "ecs:ListServices",
+                                        "ecs:ListTagsForResource",
+                                        "ecs:ListTaskDefinitionFamilies",
+                                        "ecs:ListTaskDefinitions",
+                                        "ecs:ListTasks"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": "*",
+                                    "Sid": "AllowElasticContainerServiceReadOnly"
+                                },
+                                {
+                                    "Action": "cloudhsm:DescribeClusters",
+                                    "Effect": "Allow",
+                                    "Resource": "*",
+                                    "Sid": "AllowCloudHSMReadOnly"
+                                },
+                                {
+                                    "Action": [
+                                        "glue:GetJobs",
+                                        "glue:ListWorkflows",
+                                        "glue:GetWorkflow",
+                                        "glue:GetClassifiers",
+                                        "glue:GetCrawlers",
+                                        "glue:GetDatabases",
+                                        "glue:GetSecurityConfigurations"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": "*",
+                                    "Sid": "AllowGlueReadOnly"
+                                },
+                                {
+                                    "Action": "wafv2:GetWebACL",
+                                    "Effect": "Allow",
+                                    "Resource": "*",
+                                    "Sid": "AllowWAFv2ReadOnly"
+                                },
+                                {
+                                    "Action": [
+                                        "codebuild:BatchGetBuilds",
+                                        "codebuild:BatchGetProjects",
+                                        "codepipeline:GetPipeline"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": "*",
+                                    "Sid": "AllowCodeSuiteReadOnly"
+                                },
+                                {
+                                    "Action": [
+                                        "mq:DescribeBroker",
+                                        "mq:ListBrokers"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": "*",
+                                    "Sid": "AllowMQReadOnly"
+                                },
+                                {
+                                    "Action": [
+                                        "eks:DescribeCluster",
+                                        "eks:ListClusters",
+                                        "eks:ListNodegroups"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": "*",
+                                    "Sid": "AllowEKSReadOnly"
+                                },
+                                {
+                                    "Action": [
+                                        "ce:GetCostAndUsage",
+                                        "ce:GetCostAndUsage"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": "*",
+                                    "Sid": "AllowCostExplorerReadOnly"
+                                }
+                            ],
+                            "Version": "2012-10-17"
+                        },
+                        "PolicyName": "RapticoreExtendedViewOnly"
+                    }
+                ],
+                "RoleName": {
+                    "Fn::Sub": "rapticore-cross-account-${RapticoreTenantId}"
+                }
+            }
+        }
+    }
+}
