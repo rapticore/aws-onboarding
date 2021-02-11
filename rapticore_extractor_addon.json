@@ -1,0 +1,205 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "apigateway:GET"
+            ],
+            "NotResource": [
+                "arn:aws:apigateway:*::/apikey*",
+                "arn:aws:apigateway:*::/apikeys*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "cognito-identity:DescribeIdentityPool",
+                "cognito-identity:LookupDeveloperIdentity",
+                "cognito-identity:ListIdentities",
+                "cognito-identity:ListTagsForResource",
+                "cognito-identity:GetIdentityPoolRoles"
+            ],
+            "Resource": "arn:aws:cognito-identity:*:*:identitypool/*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "cognito-identity:ListIdentityPools",
+                "cognito-identity:DescribeIdentity"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "kinesisanalytics:ListTagsForResource",
+                "kinesisanalytics:GetApplicationState",
+                "kinesisanalytics:DescribeApplication"
+            ],
+            "Resource": "arn:aws:kinesisanalytics:*:*:application/*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "kinesisanalytics:DiscoverInputSchema",
+                "kinesisanalytics:ListApplications"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "cognito-idp:AdminGetDevice",
+                "cognito-idp:ListIdentityProviders",
+                "cognito-idp:GetIdentityProviderByIdentifier",
+                "cognito-idp:GetUICustomization",
+                "cognito-idp:AdminGetUser",
+                "cognito-idp:ListUserPoolClients",
+                "cognito-idp:ListUsersInGroup",
+                "cognito-idp:DescribeUserPool",
+                "cognito-idp:AdminListUserAuthEvents",
+                "cognito-idp:ListGroups",
+                "cognito-idp:ListResourceServers",
+                "cognito-idp:AdminListDevices",
+                "cognito-idp:DescribeIdentityProvider",
+                "cognito-idp:DescribeResourceServer",
+                "cognito-idp:DescribeUserImportJob",
+                "cognito-idp:DescribeUserPoolClient",
+                "cognito-idp:GetSigningCertificate",
+                "cognito-idp:GetCSVHeader",
+                "cognito-idp:ListTagsForResource",
+                "cognito-idp:GetUserPoolMfaConfig",
+                "cognito-idp:GetGroup",
+                "cognito-idp:DescribeRiskConfiguration",
+                "cognito-idp:AdminListGroupsForUser",
+                "cognito-idp:ListUserImportJobs",
+                "cognito-idp:ListUsers"
+            ],
+            "Resource": "arn:aws:cognito-idp:*:*:userpool/*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "cognito-idp:GetDevice",
+                "cognito-idp:GetUser",
+                "cognito-idp:DescribeUserPoolDomain",
+                "cognito-idp:ListDevices",
+                "cognito-idp:GetUserAttributeVerificationCode",
+                "cognito-idp:ListUserPools"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ecs:ListTagsForResource",
+                "ecs:ListAttributes",
+                "ecs:ListTasks",
+                "ecs:DescribeServices",
+                "ecs:DescribeTaskSets",
+                "ecs:ListContainerInstances",
+                "ecs:DescribeContainerInstances",
+                "ecs:DescribeTasks",
+                "ecs:DescribeClusters"
+            ],
+            "Resource": [
+                "arn:aws:ecs:*:*:task-set/*/*/*",
+                "arn:aws:ecs:*:*:service/*",
+                "arn:aws:ecs:*:*:task-definition/*:*",
+                "arn:aws:ecs:*:*:task/*",
+                "arn:aws:ecs:*:*:container-instance/*",
+                "arn:aws:ecs:*:*:cluster/*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ecs:ListServices",
+                "ecs:ListAccountSettings",
+                "ecs:ListTaskDefinitionFamilies",
+                "ecs:ListTaskDefinitions",
+                "ecs:DescribeTaskDefinition",
+                "ecs:ListClusters",
+                "ecr:DescribeRepositories",
+                "ecr:DescribeImageScanFindings"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "cloudhsm:DescribeClusters",
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "glue:GetJobs",
+                "glue:ListWorkflows",
+                "glue:GetWorkflow",
+                "glue:GetClassifiers",
+                "glue:GetCrawlers",
+                "glue:GetDatabases",
+                "glue:GetSecurityConfigurations"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "wafv2:GetWebACL",
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "codebuild:BatchGetBuilds",
+                "codepipeline:GetPipeline",
+                "codebuild:BatchGetProjects"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "mq:DescribeBroker",
+                "mq:ListBrokers"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "eks:DescribeCluster",
+                "eks:ListClusters",
+                "eks:ListNodegroups"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ce:GetCostAndUsage",
+                "ce:GetCostAndUsage"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "lambda:GetFunction",
+                "lambda:ListFunctions"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "iam:PassRole",
+            "Resource": "*",
+            "Condition": {
+                "StringEquals": {
+                    "iam:PassedToService": "eks.amazonaws.com"
+                }
+            }
+        }
+    ]
+}
