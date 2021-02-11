@@ -6,25 +6,25 @@ Deploy the CloudFormation stack in this repository to create the AWS IAM role al
 
 You will need the _Rapticore Source Role ARN_ (a CloudFormation template Parameter) which will be provided as part of your Rapticore setup and onboarding. 
 
-Deployement Options:
+Deployment Options:
 
 1 - AWS Console
-- Log into your targat AWS acccount with premissions to create IAM Roles
+- Log into your target AWS account with permissions to create IAM Roles
 - Go to Services --> Cloudformation.
-- Click Create Stack button on top right of corner of the screen. Selecting "With new resources(Standard)" 
-- Under Create Stack - select Template is Ready and then Select "Upload a template file". 
-- Choose File to the YAML file included here and Click Next.
+- Click Create Stack button on the top right corner of the screen. Selecting "With new resources(Standard)" 
+- Under Create Stack - select Template is Ready and then Select "Upload a template file." 
+- Choose File to the YAML file included here and click Next.
 - Under Specific Stack details:
-    - Enter a Friendly Name for the Stack e.g, Raptiore-cloud-extractor-role-stack
+    - Enter a Friendly Name for the stack e.g., Rapticore-cloud-extractor-role-stack
     - Enter RapticoreAccountId provided to you by Rapticcore.
     - Enter RapticoreTenantId provided to you by Rapticore.
     - Click Next. 
-    - Review Details and select the acknowledgemet checkbox once in agreement. 
+    - Review Details and select the acknowledgment checkbox once in agreement. 
     - Click Create
-    - Review Progress and once the Role is created copy the Role ARN and enter it in the Rapticore portal or enter it in a csv for bulk upload.
+    - Review Progress, and once the Role is created, copy the Role ARN and enter it in the Rapticore portal or enter it in a CSV for bulk upload.
     
 2. AWS Commandline Deployment. 
-- You must have AWS cli configure and AWS account Profiles created for all target accounts for deploying the stack using the aws cli. Please consult AWS documentation on AWS cli installation and cconfigure AWS profiles. 
+- You must have AWS CLI configure an AWS account Profiles created for all target accounts for deploying the stack using the aws cli. Please consult AWS documentation on AWS cli installation and configure AWS profiles. 
 - Once profiles are set. Run the following command replacing:
   - RAPTICOREACOUNTID
   - RAPTICORETENANTID
