@@ -218,5 +218,11 @@
                 }
             }
         }
+    },
+    "Outputs": {
+        "IAMRoleARN": {
+            "Description": "Created readonly IAM Role for Rapticore Integration",
+            "Value": { "Fn::GetAtt" : [ "RapticoreIAMRole", "Arn" ]}
+        }
     }
 }
