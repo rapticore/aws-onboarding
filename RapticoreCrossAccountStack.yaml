@@ -118,6 +118,7 @@ Resources:
                   - glue:GetCrawlers
                   - glue:GetDatabases
                   - glue:GetSecurityConfigurations
+                  - glue:GetTags
                 Effect: Allow
                 Resource: '*'
                 Sid: AllowGlueReadOnly
@@ -147,10 +148,25 @@ Resources:
                 Sid: AllowEKSReadOnly
               - Action:
                   - ce:GetCostAndUsage
-                  - ce:GetCostAndUsage
                 Effect: Allow
                 Resource: '*'
                 Sid: AllowCostExplorerReadOnly
+              - Action:
+                  - access-analyzer:CreateAnalyzer
+                Effect: Allow
+                Resource: '*'
+                Sid: AllowIAMCreateAnalyzer
+              - Action:
+                  - kms:ListResourceTags
+                Effect: Allow
+                Resource: '*'
+                Sid: AllowKMSListTagsReadOnly
+              - Action:
+                  - lambda:GetFunction
+                  - lambda:ListFunctions
+                Effect: Allow
+                Resource: '*'
+                Sid: AllowLambdaReadOnly
             Version: '2012-10-17'
           PolicyName: RapticoreExtendedViewOnly
       RoleName: !Sub 'rapticore-cross-account-${RapticoreTenantId}'

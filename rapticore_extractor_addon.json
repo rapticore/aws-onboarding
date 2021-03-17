@@ -140,7 +140,8 @@
                 "glue:GetClassifiers",
                 "glue:GetCrawlers",
                 "glue:GetDatabases",
-                "glue:GetSecurityConfigurations"
+                "glue:GetSecurityConfigurations",
+                "glue:GetTags"
             ],
             "Resource": "*"
         },
@@ -186,8 +187,36 @@
         {
             "Effect": "Allow",
             "Action": [
+                "access-analyzer:CreateAnalyzer",
+                "access-analyzer:CreateAnalyzer"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
                 "lambda:GetFunction",
                 "lambda:ListFunctions"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "iam:CreatePolicy",
+                "iam:CreatePolicyVersion",
+                "iam:AttachUserPolicy",
+                "iam:DeletePolicyVersion",
+                "iam:AttachGroupPolicy",
+                "iam:AttachRolePolicy"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "kms:ListResourceTags",
+                "kms:ListResourceTags"
             ],
             "Resource": "*"
         },
