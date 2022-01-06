@@ -140,7 +140,8 @@
                 "glue:GetClassifiers",
                 "glue:GetCrawlers",
                 "glue:GetDatabases",
-                "glue:GetSecurityConfigurations"
+                "glue:GetSecurityConfigurations",
+                "glue:GetTags"
             ],
             "Resource": "*"
         },
@@ -154,6 +155,7 @@
             "Action": [
                 "codebuild:BatchGetBuilds",
                 "codepipeline:GetPipeline",
+                "codepipeline:ListTagsForResource",
                 "codebuild:BatchGetProjects"
             ],
             "Resource": "*"
@@ -186,10 +188,26 @@
         {
             "Effect": "Allow",
             "Action": [
+                "access-analyzer:CreateAnalyzer",
+                "access-analyzer:CreateAnalyzer"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
                 "lambda:GetFunction",
                 "lambda:ListFunctions"
             ],
             "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "kms:ListResourceTags",
+                "kms:ListResourceTags"
+            ],
+            "Resource": "arn:aws:kms:*:*:key/*"
         },
         {
             "Effect": "Allow",
