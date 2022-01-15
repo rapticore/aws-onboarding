@@ -179,6 +179,14 @@
         {
             "Effect": "Allow",
             "Action": [
+                "ec2:GetEbsEncryptionByDefault",
+                "ec2:GetEbsEncryptionByDefault"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
                 "ce:GetCostAndUsage",
                 "ce:GetCostAndUsage"
             ],

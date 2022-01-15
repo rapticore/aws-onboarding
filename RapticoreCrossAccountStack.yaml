@@ -147,6 +147,12 @@ Resources:
                 Resource: '*'
                 Sid: AllowEKSReadOnly
               - Action:
+                  - ec2:GetEbsEncryptionByDefault
+                  - ec2:GetEbsEncryptionByDefault
+                  Effect: Allow
+                  Resource: '*'
+                  Sid: AllowEC2ReadOnly
+              - Action:
                   - ce:GetCostAndUsage
                 Effect: Allow
                 Resource: '*'
