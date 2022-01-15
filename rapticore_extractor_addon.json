@@ -155,6 +155,7 @@
             "Action": [
                 "codebuild:BatchGetBuilds",
                 "codepipeline:GetPipeline",
+                "codepipeline:ListTagsForResource",
                 "codebuild:BatchGetProjects"
             ],
             "Resource": "*"
@@ -211,22 +212,10 @@
         {
             "Effect": "Allow",
             "Action": [
-                "iam:CreatePolicy",
-                "iam:CreatePolicyVersion",
-                "iam:AttachUserPolicy",
-                "iam:DeletePolicyVersion",
-                "iam:AttachGroupPolicy",
-                "iam:AttachRolePolicy"
-            ],
-            "Resource": "*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
                 "kms:ListResourceTags",
                 "kms:ListResourceTags"
             ],
-            "Resource": "*"
+            "Resource": "arn:aws:kms:*:*:key/*"
         },
         {
             "Effect": "Allow",

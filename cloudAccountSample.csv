@@ -1,3 +1,2 @@
-CloudName,AccountName,RoleARN
-AWS,Rapticore Account,arn:aws:iam::123456789123:role/rapticore-ro
-Azure,Glass-comb,arn:aws:iam::123456987369:role/rapticore-ro
+AccountName,RoleARN
+Rapticore Account,arn:aws:iam::123456789123:role/rapticore-ro

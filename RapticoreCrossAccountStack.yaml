@@ -176,3 +176,7 @@ Resources:
             Version: '2012-10-17'
           PolicyName: RapticoreExtendedViewOnly
       RoleName: !Sub 'rapticore-cross-account-${RapticoreTenantId}'
+Outputs:
+  IAMRoleARN:
+    Description: Created readonly IAM Role for Rapticore Integration
+    Value: !GetAtt RapticoreIAMRole.Arn
