@@ -130,6 +130,7 @@ Resources:
                   - codebuild:BatchGetBuilds
                   - codebuild:BatchGetProjects
                   - codepipeline:GetPipeline
+                  - codepipeline:ListTagsForResource
                 Effect: Allow
                 Resource: '*'
                 Sid: AllowCodeSuiteReadOnly
@@ -149,11 +150,12 @@ Resources:
               - Action:
                   - ec2:GetEbsEncryptionByDefault
                   - ec2:GetEbsEncryptionByDefault
-                  Effect: Allow
-                  Resource: '*'
-                  Sid: AllowEC2ReadOnly
+                Effect: Allow
+                Resource: '*'
+                Sid: AllowEC2ReadOnly
               - Action:
                   - ce:GetCostAndUsage
+                  - ce:GetCostForecast
                 Effect: Allow
                 Resource: '*'
                 Sid: AllowCostExplorerReadOnly

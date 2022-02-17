@@ -173,7 +173,8 @@
                                     "Action": [
                                         "codebuild:BatchGetBuilds",
                                         "codebuild:BatchGetProjects",
-                                        "codepipeline:GetPipeline"
+                                        "codepipeline:GetPipeline",
+                                        "codepipeline:ListTagsForResource"
                                     ],
                                     "Effect": "Allow",
                                     "Resource": "*",
@@ -209,11 +210,20 @@
                                 {
                                     "Action": [
                                         "ce:GetCostAndUsage",
-                                        "ce:GetCostAndUsage"
+                                        "ce:GetCostForecast"
                                     ],
                                     "Effect": "Allow",
                                     "Resource": "*",
                                     "Sid": "AllowCostExplorerReadOnly"
+                                },
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "kms:ListResourceTags",
+                                        "kms:ListResourceTags"
+                                    ],
+                                    "Resource": "*",
+                                    "Sid": "AllowKMSListTagsReadOnly"
                                 }
                             ],
                             "Version": "2012-10-17"
