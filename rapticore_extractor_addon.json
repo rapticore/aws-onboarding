@@ -189,7 +189,7 @@
             "Effect": "Allow",
             "Action": [
                 "ce:GetCostAndUsage",
-                "ce:GetCostAndUsage"
+                "ce:GetCostForecast"
             ],
             "Resource": "*"
         },
