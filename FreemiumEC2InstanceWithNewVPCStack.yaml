@@ -1,0 +1,149 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  EC2InstanceType :
+    Description : Rapticore Server EC2 instance type
+    Type : String
+    Default : t3.medium
+    ConstraintDescription : must be a valid EC2 instance type.
+    AllowedValues: [t3.medium, t3.large, t3.2xlarge, c3.large, c3.xlarge, c3.2xlarge, c3.4xlarge, c4.large, c4.xlarge, c4.2xlarge, c4.4xlarge, c5.large, c5.xlarge, c5.2xlarge, c5.4xlarge, c5a.large, c5a.xlarge, c5a.2xlarge, c5a.4xlarge]
+
+Resources:
+  #####
+  # Network resources
+  #####
+  VPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: Rapticore VPC
+
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    DependsOn: VPC
+  AttachGateway:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicSubnet1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select
+        - '0'
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: Public Subnet 1
+
+  PublicRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    DependsOn:
+      - AttachGateway
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: Public Route Table
+  PublicRoute:
+    Type: 'AWS::EC2::Route'
+    DependsOn:
+      - VPC
+      - AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnet1RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+
+  RapticoreSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Enable HTTP access
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: Rapticore-Freemium-Security-Group
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+
+  #####
+  # EC2 resources
+  #####
+  EC2InstanceProfileRoleForRapticore:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "ec2.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Description: !Sub 'Rapticore Freemium EC2 IAM Role Deployment'
+      Policies:
+        - PolicyDocument:
+            Statement:
+              - Action:
+                  - iam:ListRole*
+                  - ec2:DescribeRegions
+                  - iam:GetRole*
+                Effect: Allow
+                Resource: '*'
+                Sid: AllowIamEc2ReadyOnly
+              - Action: sts:AssumeRole
+                Effect: Allow
+                Resource: 'arn:aws:iam::*:role/rapticore*'
+                Sid: EC2AssumeRole
+          PolicyName: RapticoreEc2Policy
+      RoleName: !Sub 'RapticoreFreemiumEc2IAMRole'
+
+  EC2InstanceProfileForRapticore:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref EC2InstanceProfileRoleForRapticore
+
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      IamInstanceProfile: !Ref EC2InstanceProfileForRapticore
+      ImageId: ami-0efcf9caf5a2fe346
+      InstanceType: !Ref EC2InstanceType
+      SecurityGroupIds:
+        - !Ref RapticoreSecurityGroup
+      SubnetId: !Ref PublicSubnet1
+      Tags:
+        - Key: Name
+          Value: Rapticore-Freemium
+
+Outputs:
+  URL:
+    Value: !Join [ "", [ "https://", !GetAtt EC2Instance.PublicDnsName ] ] 
+    Description: Rapticore Freemium URL
+  EC2InstanceId:
+    Description: Instance ID of the launched EC2 instance
+    Value:  !Ref EC2Instance
+    Export:
+      Name: EC2InstanceId
