@@ -2,7 +2,7 @@
 export COGNITOUSERPOOLID=us-west-2_XPwQB4QGi
 export USERGROUPNAME=rapticore-freemium
 export USERNAME=saquibaltaf@gmail.com
-export TEMP-PASSWORD=Rapticore@freemium123
+export TEMPPASSWORD=Rapticore@freemium123
 export EMAIL=saquibaltaf@gmail.com
 export FIRSTNAME=Saqib 
 export LASTNAME=Altaf
@@ -22,7 +22,7 @@ aws cognito-idp create-group --user-pool-id us-west-2_XPwQB4QGi --group-name rap
 aws cognito-idp admin-create-user \
     --user-pool-id $COGNITOUSERPOOLID \
     --username $EMAIL \
-    --temporary-password TEMP-PASSWORD \
+    --temporary-password $TEMPPASSWORD \
     --user-attributes Name=email,Value=$EMAIL Name=given_name,Value=$FIRSTNAME Name=family_name,Value=$LASTNAME Name=phone_number,Value=$PHONENO Name=custom:userRole,Value=$USERROLE Name=email_verified,Value=true Name=phone_number_verified,Value=true \
     --desired-delivery-mediums "EMAIL"
     
