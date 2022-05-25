@@ -6,7 +6,7 @@ export TEMPPASSWORD=Rapticore@freemium123
 export EMAIL=saquibaltaf@gmail.com
 export FIRSTNAME=Saqib 
 export LASTNAME=Altaf
-export PHONENO=+923345184915 // Phone number must be entered in format  +(Country Code)(MobileNo)
+export PHONENO=+923345184915 #Phone number must be entered in format  +(Country Code)(MobileNo)
 export USERROLE=Member
 
 export AWS_ACCESS_KEY_ID="ASIAWCLYLRVNVILEKDWN"
