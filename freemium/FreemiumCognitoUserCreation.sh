@@ -1,6 +1,6 @@
 #Set the User Information before running this script
 export COGNITOUSERPOOLID=us-west-2_XPwQB4QGi
-export USERGROUPNAME=rapticore-freemium
+export USERGROUPNAME=rapticore #must be company name
 export USERNAME=saquibaltaf@gmail.com
 export TEMPPASSWORD=Rapticore@freemium123
 export EMAIL=saquibaltaf@gmail.com
