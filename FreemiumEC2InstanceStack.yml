@@ -82,7 +82,7 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       IamInstanceProfile: !Ref EC2InstanceProfileForRapticore
-      ImageId: ami-0e4e558f066b440e7
+      ImageId: ami-0fcde6cc1b86cf2b5
       InstanceType: !Ref EC2InstanceType
       SecurityGroupIds:
         - !Ref RapticoreSecurityGroup
