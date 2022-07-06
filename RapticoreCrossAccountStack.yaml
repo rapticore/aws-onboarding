@@ -175,6 +175,13 @@ Resources:
                 Effect: Allow
                 Resource: '*'
                 Sid: AllowLambdaReadOnly
+              - Action:
+                  - states:ListStateMachines
+                  - states:DescribeStateMachine
+                  - states:ListTagsForResource
+                Resource: '*'
+                Effect: Allow
+                Sid: AllowCognitoToIdentityReadOnly
             Version: '2012-10-17'
           PolicyName: RapticoreExtendedViewOnly
       RoleName: !Sub 'rapticore-cross-account-${RapticoreTenantId}'
