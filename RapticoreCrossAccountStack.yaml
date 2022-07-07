@@ -181,7 +181,7 @@ Resources:
                   - states:ListTagsForResource
                 Resource: '*'
                 Effect: Allow
-                Sid: AllowCognitoToIdentityReadOnly
+                Sid: AllowStepFunctionsReadOnly
             Version: '2012-10-17'
           PolicyName: RapticoreExtendedViewOnly
       RoleName: !Sub 'rapticore-cross-account-${RapticoreTenantId}'
