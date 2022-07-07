@@ -13,8 +13,8 @@ Resources:
         Statement:
           - Action: sts:AssumeRole
             Condition:
-                StringLike: 
-                    sts:ExternalId: [ "rapticore*" ]
+                StringEquals: 
+                    sts:ExternalId: [ "rapticore-freemium" ]
             Effect: Allow
             Principal:
               AWS: !Sub 'arn:${AWS::Partition}:iam::${RapticoreAccountId}:root'
