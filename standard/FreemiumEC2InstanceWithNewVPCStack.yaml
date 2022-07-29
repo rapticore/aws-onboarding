@@ -3,7 +3,7 @@ Parameters:
   EC2InstanceType :
     Description : Rapticore Server EC2 instance type
     Type : String
-    Default : t3.medium
+    Default : t3.large
     ConstraintDescription : must be a valid EC2 instance type.
     AllowedValues: [t3.medium, t3.large, t3.2xlarge, c3.large, c3.xlarge, c3.2xlarge, c3.4xlarge, c4.large, c4.xlarge, c4.2xlarge, c4.4xlarge, c5.large, c5.xlarge, c5.2xlarge, c5.4xlarge, c5a.large, c5a.xlarge, c5a.2xlarge, c5a.4xlarge]
 
@@ -129,7 +129,7 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       IamInstanceProfile: !Ref EC2InstanceProfileForRapticore
-      ImageId: ami-00f1d0c2d9927029e
+      ImageId: ami-08190d22a68714755
       InstanceType: !Ref EC2InstanceType
       SecurityGroupIds:
         - !Ref RapticoreSecurityGroup
