@@ -224,6 +224,16 @@
                                     ],
                                     "Resource": "*",
                                     "Sid": "AllowKMSListTagsReadOnly"
+                                },
+                                {
+                                    "Action": [
+                                        "states:ListStateMachines",
+                                        "states:DescribeStateMachine",
+                                        "states:ListTagsForResource"
+                                    ],
+                                    "Resource": "*",
+                                    "Effect": "Allow",
+                                    "Sid": "AllowStepFunctionsReadOnly"
                                 }
                             ],
                             "Version": "2012-10-17"
