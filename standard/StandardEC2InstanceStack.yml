@@ -74,7 +74,7 @@ Resources:
                 Resource: 'arn:aws:iam::*:role/rapticore*'
                 Sid: EC2AssumeRole
           PolicyName: RapticoreEc2Policy
-      RoleName: !Sub 'RapticoreFreemiumEc2IAMRole'
+      RoleName: !Sub 'RapticoreStandardEc2IAMRole'
 
   EC2InstanceProfileForRapticore:
     Type: AWS::IAM::InstanceProfile
@@ -86,7 +86,7 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       IamInstanceProfile: !Ref EC2InstanceProfileForRapticore
-      ImageId: ami-056116106623a2248
+      ImageId: ami-0bfa7daeb3932500d
       InstanceType: !Ref EC2InstanceType
       SecurityGroupIds:
         - !Ref RapticoreSecurityGroup
