@@ -38,6 +38,10 @@ Resources:
           FromPort: 443
           ToPort: 443
           CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 6100
+          ToPort: 6100
+          CidrIp: 0.0.0.0/0
 
   #####
   # EC2 resources
@@ -82,7 +86,7 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       IamInstanceProfile: !Ref EC2InstanceProfileForRapticore
-      ImageId: ami-056116106623a2248
+      ImageId: ami-0473a0fe85c3c5683
       InstanceType: !Ref EC2InstanceType
       SecurityGroupIds:
         - !Ref RapticoreSecurityGroup
