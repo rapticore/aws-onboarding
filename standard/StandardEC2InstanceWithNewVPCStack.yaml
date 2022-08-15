@@ -85,6 +85,10 @@ Resources:
           FromPort: 443
           ToPort: 443
           CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 6100
+          ToPort: 6100
+          CidrIp: 0.0.0.0/0
 
   #####
   # EC2 resources
@@ -129,7 +133,7 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       IamInstanceProfile: !Ref EC2InstanceProfileForRapticore
-      ImageId: ami-08190d22a68714755
+      ImageId: ami-056116106623a2248
       InstanceType: !Ref EC2InstanceType
       SecurityGroupIds:
         - !Ref RapticoreSecurityGroup
@@ -139,11 +143,11 @@ Resources:
           Value: Rapticore-Standard
 
 Outputs:
-  URL:
+  RapticoreStandardURL:
     Value: !Join [ "", [ "https://", !GetAtt EC2Instance.PublicDnsName ] ] 
     Description: Rapticore Standard URL
-  EC2InstanceId:
+  RapticoreStandardInstanceId:
     Description: Instance ID of the launched EC2 instance
     Value:  !Ref EC2Instance
     Export:
-      Name: EC2InstanceId
+      Name: RapticoreStandardInstanceId
