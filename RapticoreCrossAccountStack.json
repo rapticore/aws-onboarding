@@ -244,6 +244,19 @@
                                     "Resource": "*",
                                     "Effect": "Allow",
                                     "Sid": "AllowStepFunctionsReadOnly"
+                                },
+                                {
+                                    "Action": [
+                                        "kafka:ListClusters",
+                                        "kafka:ListClustersV2",
+                                        "kafka:ListNodes",
+                                        "kafka:DescribeClusterOperation",
+                                        "kafka:ListConfigurations",
+                                        "kafka:DescribeConfigurationRevision"
+                                    ],
+                                    "Resource": "*",
+                                    "Effect": "Allow",
+                                    "Sid": "AllowKafkaReadOnly"
                                 }
                             ],
                             "Version": "2012-10-17"
