@@ -226,6 +226,16 @@
                                     "Sid": "AllowKMSListTagsReadOnly"
                                 },
                                 {
+                                    "Effect": "Allow",
+                                    "Action": [
+				                            "inspector2:Describe*",
+                                            "inspector2:Get*",
+                                            "inspector2:List*"
+                                    ],
+                                    "Resource": "*",
+                                    "Sid": "AllowInspector2ReadOnly"
+                                },
+                                {
                                     "Action": [
                                         "states:ListStateMachines",
                                         "states:DescribeStateMachine",
