@@ -212,6 +212,16 @@
         {
             "Effect": "Allow",
             "Action": [
+                    "inspector2:Describe*",
+                    "inspector2:Get*",
+                    "inspector2:List*"
+            ],
+            "Resource": "*",
+            "Sid": "AllowInspector2ReadOnly"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
                 "kms:ListResourceTags",
                 "kms:ListResourceTags"
             ],

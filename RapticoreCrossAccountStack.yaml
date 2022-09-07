@@ -176,6 +176,13 @@ Resources:
                 Resource: '*'
                 Sid: AllowLambdaReadOnly
               - Action:
+                  - inspector2:Describe*"
+                  - inspector2:Get*"
+                  - inspector2:List*
+                Effect: Allow
+                Resource: '*'
+                Sid: AllowInspector2ReadOnly
+              - Action:
                   - states:ListStateMachines
                   - states:DescribeStateMachine
                   - states:ListTagsForResource
