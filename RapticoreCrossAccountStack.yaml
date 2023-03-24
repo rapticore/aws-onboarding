@@ -2,13 +2,14 @@ Description: Rapticore Cross Account IAM Role Deployment
 Parameters:
   RapticoreAccountId:
     Type: String
-    AllowedPattern: '[0-9]{12}'
+    AllowedPattern: "[0-9]{12}"
     ConstraintDescription: Please enter a valid AWS Account ID (provided by Rapticore)
     Description: The Rapticore Source AWS Account ID
   RapticoreTenantId:
     Type: String
-    AllowedPattern: '[a-zA-Z][a-zA-Z0-9-]+[a-zA-Z0-9]'
-    ConstraintDescription: Please enter a valid Tenant ID (provided by Rapticore),
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9-]+[a-zA-Z0-9]"
+    ConstraintDescription:
+      Please enter a valid Tenant ID (provided by Rapticore),
       must be at least three alphanumeric characters and not start or end with a dash
     Description: Your Rapticore Tenant ID
 Resources:
@@ -20,15 +21,15 @@ Resources:
           - Action: sts:AssumeRole
             Condition:
               StringEquals:
-                sts:ExternalId: !Sub 'rapticore-${RapticoreTenantId}'
+                sts:ExternalId: !Sub "rapticore-${RapticoreTenantId}"
             Effect: Allow
             Principal:
-              AWS: !Sub 'arn:${AWS::Partition}:iam::${RapticoreAccountId}:root'
-        Version: '2012-10-17'
-      Description: !Sub 'Rapticore Cross-Account Access Role for ${RapticoreTenantId}'
+              AWS: !Sub "arn:${AWS::Partition}:iam::${RapticoreAccountId}:root"
+        Version: "2012-10-17"
+      Description: !Sub "Rapticore Cross-Account Access Role for ${RapticoreTenantId}"
       ManagedPolicyArns:
-        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/job-function/ViewOnlyAccess'
-        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/SecurityAudit'
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/job-function/ViewOnlyAccess"
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/SecurityAudit"
       Policies:
         - PolicyDocument:
             Statement:
@@ -47,7 +48,7 @@ Resources:
                   - cognito-identity:ListIdentityPools
                   - cognito-identity:DescribeIdentity
                 Effect: Allow
-                Resource: '*'
+                Resource: "*"
                 Sid: AllowCognitoIdentityPoolsReadOnly
               - Action:
                   - kinesisanalytics:ListTagsForResource
@@ -56,7 +57,7 @@ Resources:
                   - kinesisanalytics:DiscoverInputSchema
                   - kinesisanalytics:ListApplications
                 Effect: Allow
-                Resource: '*'
+                Resource: "*"
                 Sid: AllowKinesisAnalyticsReadOnly
               - Action:
                   - cognito-idp:AdminGetDevice
@@ -83,7 +84,7 @@ Resources:
                   - cognito-idp:ListUsers
                   - cognito-idp:ListUsersInGroup
                 Effect: Allow
-                Resource: '*'
+                Resource: "*"
                 Sid: AllowCognitoUserPoolsReadOnly
               - Action:
                   - ecr:DescribeImageScanFindings
@@ -104,11 +105,11 @@ Resources:
                   - ecs:ListTaskDefinitions
                   - ecs:ListTasks
                 Effect: Allow
-                Resource: '*'
+                Resource: "*"
                 Sid: AllowElasticContainerServiceReadOnly
               - Action: cloudhsm:DescribeClusters
                 Effect: Allow
-                Resource: '*'
+                Resource: "*"
                 Sid: AllowCloudHSMReadOnly
               - Action:
                   - glue:GetJobs
@@ -120,11 +121,11 @@ Resources:
                   - glue:GetSecurityConfigurations
                   - glue:GetTags
                 Effect: Allow
-                Resource: '*'
+                Resource: "*"
                 Sid: AllowGlueReadOnly
               - Action: wafv2:GetWebACL
                 Effect: Allow
-                Resource: '*'
+                Resource: "*"
                 Sid: AllowWAFv2ReadOnly
               - Action:
                   - codebuild:BatchGetBuilds
@@ -132,66 +133,145 @@ Resources:
                   - codepipeline:GetPipeline
                   - codepipeline:ListTagsForResource
                 Effect: Allow
-                Resource: '*'
+                Resource: "*"
                 Sid: AllowCodeSuiteReadOnly
               - Action:
                   - mq:DescribeBroker
                   - mq:ListBrokers
                 Effect: Allow
-                Resource: '*'
+                Resource: "*"
                 Sid: AllowMQReadOnly
               - Action:
                   - eks:DescribeCluster
                   - eks:ListClusters
                   - eks:ListNodegroups
                 Effect: Allow
-                Resource: '*'
+                Resource: "*"
                 Sid: AllowEKSReadOnly
               - Action:
                   - ec2:GetEbsEncryptionByDefault
                   - ec2:GetEbsEncryptionByDefault
                 Effect: Allow
-                Resource: '*'
+                Resource: "*"
                 Sid: AllowEC2ReadOnly
               - Action:
                   - ce:GetCostAndUsage
                   - ce:GetCostForecast
                 Effect: Allow
-                Resource: '*'
+                Resource: "*"
                 Sid: AllowCostExplorerReadOnly
               - Action:
                   - access-analyzer:CreateAnalyzer
                 Effect: Allow
-                Resource: '*'
+                Resource: "*"
                 Sid: AllowIAMCreateAnalyzer
               - Action:
                   - kms:ListResourceTags
                 Effect: Allow
-                Resource: '*'
+                Resource: "*"
                 Sid: AllowKMSListTagsReadOnly
               - Action:
                   - lambda:GetFunction
                   - lambda:ListFunctions
                 Effect: Allow
-                Resource: '*'
+                Resource: "*"
                 Sid: AllowLambdaReadOnly
               - Action:
                   - inspector2:Describe*"
                   - inspector2:Get*"
                   - inspector2:List*
                 Effect: Allow
-                Resource: '*'
+                Resource: "*"
                 Sid: AllowInspector2ReadOnly
               - Action:
                   - states:ListStateMachines
                   - states:DescribeStateMachine
                   - states:ListTagsForResource
-                Resource: '*'
+                Resource: "*"
                 Effect: Allow
                 Sid: AllowStepFunctionsReadOnly
-            Version: '2012-10-17'
+              - Action:
+                  - kafka:ListClusters
+                  - kafka:ListClustersV2
+                  - kafka:ListNodes
+                  - kafka:DescribeClusterOperation
+                  - kafka:ListConfigurations
+                  - kafka:DescribeConfigurationRevision
+                Resource: "*"
+                Effect: Allow
+                Sid: AllowKafkaReadOnly
+              - Action:
+                  - sso:DescribeAccountAssignmentCreationStatus
+                  - sso:DescribeAccountAssignmentDeletionStatus
+                  - sso:DescribePermissionSet
+                  - sso:DescribePermissionSetProvisioningStatus
+                  - sso:DescribePermissionsPolicies
+                  - sso:DescribeRegisteredRegions
+                  - sso:GetApplicationInstance
+                  - sso:GetApplicationTemplate
+                  - sso:GetInlinePolicyForPermissionSet
+                  - sso:GetManagedApplicationInstance
+                  - sso:GetMfaDeviceManagementForDirectory
+                  - sso:GetPermissionSet
+                  - sso:GetPermissionsPolicy
+                  - sso:GetProfile
+                  - sso:GetSharedSsoConfiguration
+                  - sso:GetSsoConfiguration
+                  - sso:GetSSOStatus
+                  - sso:GetTrust
+                  - sso:ListAccountAssignmentCreationStatus
+                  - sso:ListAccountAssignmentDeletionStatus
+                  - sso:ListAccountAssignments
+                  - sso:ListAccountsForProvisionedPermissionSet
+                  - sso:ListApplicationInstanceCertificates
+                  - sso:ListApplicationInstances
+                  - sso:ListApplications
+                  - sso:ListApplicationTemplates
+                  - sso:ListDirectoryAssociations
+                  - sso:ListInstances
+                  - sso:ListManagedPoliciesInPermissionSet
+                  - sso:ListPermissionSetProvisioningStatus
+                  - sso:ListPermissionSets
+                  - sso:ListPermissionSetsProvisionedToAccount
+                  - sso:ListProfileAssociations
+                  - sso:ListProfiles
+                  - sso:ListTagsForResource
+                  - iam:ListPolicies
+                Resource: "*"
+                Effect: Allow
+                Sid: AllowSsoReadOnly
+              - Action:
+                  - sso-directory:DescribeDirectory
+                  - sso-directory:DescribeGroups
+                  - sso-directory:DescribeUsers
+                  - sso-directory:ListGroupsForUser
+                  - sso-directory:ListMembersInGroup
+                  - sso-directory:SearchGroups
+                  - sso-directory:SearchUsers
+                Resource: "*"
+                Effect: Allow
+                Sid: AllowSsoDirectoryReadOnly
+              - Action:
+                  - ds:DescribeDirectories
+                  - ds:DescribeTrusts
+                Resource: "*"
+                Effect: Allow
+                Sid: AllowDsDirectoryReadOnly
+              - Action:
+                  - identitystore:ListGroups
+                  - identitystore:ListUsers
+                  - identitystore:ListGroupMemberships
+                  - identitystore:ListGroupMembershipsForMember
+                  - identitystore:IsMemberInGroups
+                  - identitystore:DescribeUser
+                  - identitystore:DescribeGroup
+                  - identitystore:DescribeGroupMembership
+                Resource: "*"
+                Effect: Allow
+                Sid: AllowIdentityStoreReadOnly
+            Version: "2012-10-17"
           PolicyName: RapticoreExtendedViewOnly
-      RoleName: !Sub 'rapticore-cross-account-${RapticoreTenantId}'
+      RoleName: !Sub "rapticore-cross-account-${RapticoreTenantId}"
 Outputs:
   IAMRoleARN:
     Description: Created readonly IAM Role for Rapticore Integration

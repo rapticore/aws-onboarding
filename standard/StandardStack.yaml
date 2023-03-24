@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 Parameters:
-  VpcId: 
+  VpcId:
     Type: AWS::EC2::VPC::Id
     Description: VpcId of your existing Virtual Private Cloud (VPC)
     ConstraintDescription: must be the VPC Id of an existing Virtual Private Cloud.
@@ -13,9 +13,18 @@ Parameters:
   EC2InstanceType :
     Description : Rapticore Server EC2 instance type
     Type : String
-    Default : t3.medium
+    Default : t3.large
     ConstraintDescription : must be a valid EC2 instance type.
     AllowedValues: [t3.medium, t3.large, t3.2xlarge, c3.large, c3.xlarge, c3.2xlarge, c3.4xlarge, c4.large, c4.xlarge, c4.2xlarge, c4.4xlarge, c5.large, c5.xlarge, c5.2xlarge, c5.4xlarge, c5a.large, c5a.xlarge, c5a.2xlarge, c5a.4xlarge]
+
+  Domain:
+    Description: 'The domain name of your Rapticore instance.'
+    Type: String
+    ConstraintDescription: must be a valid domain name i.e., domain.ore.rapticore.cloud
+
+  HostedZoneID:
+      Description: 'The ID of your Route 53 hosted zone. Domain name record will be created in this zone.'
+      Type: 'AWS::Route53::HostedZone::Id'
 
 Resources:
   #####
@@ -28,7 +37,7 @@ Resources:
       VpcId: !Ref VpcId
       Tags:
         - Key: Name
-          Value: Rapticore-Freemium-Security-Group
+          Value: Rapticore-Standard-Security-Group
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 80
@@ -42,6 +51,46 @@ Resources:
           FromPort: 6100
           ToPort: 6100
           CidrIp: 0.0.0.0/0
+
+  NetworkLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Join [ "", [ !Select [0, !Split [., !Ref Domain ]],'-elb' ] ]
+      IpAddressType: ipv4
+      Scheme: internet-facing
+      Subnets: [!Ref SubnetId]
+      Type: network
+      Tags:
+          - Key: 'Name'
+            Value: !Join [ "", [!Ref Domain,'-loadbalancer' ] ]
+  NetworkLoadBalancerTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Join [ "", [ !Select [0, !Split [., !Ref Domain ]],'-target-group' ] ]
+      Port: 443
+      Protocol: TLS
+      VpcId: !Ref VpcId
+      TargetType: instance
+      Targets:
+        - Id:  !Ref EC2Instance
+  # Set up TLS Cert
+  Cert:
+    Type: 'AWS::CertificateManager::Certificate'
+    Properties:
+      DomainName: !Ref Domain
+      ValidationMethod: DNS
+
+  NetworkLoadBalancerListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref NetworkLoadBalancerTargetGroup
+      LoadBalancerArn: !Ref NetworkLoadBalancer
+      Port: 443
+      Protocol: TLS
+      Certificates:
+        - CertificateArn: !Ref Cert
 
   #####
   # EC2 resources
@@ -58,7 +107,7 @@ Resources:
                 - "ec2.amazonaws.com"
             Action:
               - "sts:AssumeRole"
-      Description: !Sub 'Rapticore Freemium EC2 IAM Role Deployment'
+      Description: !Sub 'Rapticore Standard EC2 IAM Role Deployment'
       Policies:
         - PolicyDocument:
             Statement:
@@ -74,7 +123,8 @@ Resources:
                 Resource: 'arn:aws:iam::*:role/rapticore*'
                 Sid: EC2AssumeRole
           PolicyName: RapticoreEc2Policy
-      RoleName: !Sub 'RapticoreFreemiumEc2IAMRole'
+      RoleName: !Join [ "", [ 'RapticoreStandardEc2IAMRole', !Select [0, !Split [., !Ref Domain ]] ] ]
+
 
   EC2InstanceProfileForRapticore:
     Type: AWS::IAM::InstanceProfile
@@ -86,21 +136,35 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       IamInstanceProfile: !Ref EC2InstanceProfileForRapticore
-      ImageId: ami-0470ba3588e7e1db7
+      ImageId: ami-09ca9451840476dc8
       InstanceType: !Ref EC2InstanceType
       SecurityGroupIds:
         - !Ref RapticoreSecurityGroup
       SubnetId: !Ref SubnetId
       Tags:
         - Key: Name
-          Value: Rapticore-Freemium
+          Value: !Join [ "", [!Ref Domain,'Rapticore-standard' ] ]
+
+  # Set up A Record via Route 53
+  Route53Record:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneId: !Ref HostedZoneID
+      Comment: Route 53 record for Rapticore Standard
+      RecordSets:
+        - Name: !Ref Domain
+          Type: A
+          AliasTarget:
+            HostedZoneId: !GetAtt 'NetworkLoadBalancer.CanonicalHostedZoneID'
+            DNSName: !GetAtt NetworkLoadBalancer.DNSName
+
 
 Outputs:
-  URL:
-    Value: !Join [ "", [ "https://", !GetAtt EC2Instance.PublicDnsName ] ] 
-    Description: Rapticore Freemium URL
-  EC2InstanceId:
+  RapticoreStandardURL:
+    Value: !Join [ "", [ "https://", !Ref Domain ] ]
+    Description: Rapticore Standard URL
+  RapticoreStandardInstanceId:
     Description: Instance ID of the launched EC2 instance
     Value:  !Ref EC2Instance
     Export:
-      Name: EC2InstanceId
+      Name: !Join [ "", [ "RapticoreStandardInstanceId-", !Select [0, !Split [., !Ref Domain ]] ] ]

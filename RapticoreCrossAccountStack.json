@@ -244,6 +244,100 @@
                                     "Resource": "*",
                                     "Effect": "Allow",
                                     "Sid": "AllowStepFunctionsReadOnly"
+                                },
+                                {
+                                    "Action": [
+                                        "kafka:ListClusters",
+                                        "kafka:ListClustersV2",
+                                        "kafka:ListNodes",
+                                        "kafka:DescribeClusterOperation",
+                                        "kafka:ListConfigurations",
+                                        "kafka:DescribeConfigurationRevision"
+                                    ],
+                                    "Resource": "*",
+                                    "Effect": "Allow",
+                                    "Sid": "AllowKafkaReadOnly"
+                                },
+                                {
+                                    "Action": [
+                                        "sso:DescribeAccountAssignmentCreationStatus",
+                                        "sso:DescribeAccountAssignmentDeletionStatus",
+                                        "sso:DescribePermissionSet",
+                                        "sso:DescribePermissionSetProvisioningStatus",
+                                        "sso:DescribePermissionsPolicies",
+                                        "sso:DescribeRegisteredRegions",
+                                        "sso:GetApplicationInstance",
+                                        "sso:GetApplicationTemplate",
+                                        "sso:GetInlinePolicyForPermissionSet",
+                                        "sso:GetManagedApplicationInstance",
+                                        "sso:GetMfaDeviceManagementForDirectory",
+                                        "sso:GetPermissionSet",
+                                        "sso:GetPermissionsPolicy",
+                                        "sso:GetProfile",
+                                        "sso:GetSharedSsoConfiguration",
+                                        "sso:GetSsoConfiguration",
+                                        "sso:GetSSOStatus",
+                                        "sso:GetTrust",
+                                        "sso:ListAccountAssignmentCreationStatus",
+                                        "sso:ListAccountAssignmentDeletionStatus",
+                                        "sso:ListAccountAssignments",
+                                        "sso:ListAccountsForProvisionedPermissionSet",
+                                        "sso:ListApplicationInstanceCertificates",
+                                        "sso:ListApplicationInstances",
+                                        "sso:ListApplications",
+                                        "sso:ListApplicationTemplates",
+                                        "sso:ListDirectoryAssociations",
+                                        "sso:ListInstances",
+                                        "sso:ListManagedPoliciesInPermissionSet",
+                                        "sso:ListPermissionSetProvisioningStatus",
+                                        "sso:ListPermissionSets",
+                                        "sso:ListPermissionSetsProvisionedToAccount",
+                                        "sso:ListProfileAssociations",
+                                        "sso:ListProfiles",
+                                        "sso:ListTagsForResource",
+                                        "iam:ListPolicies"
+                                    ],
+                                    "Resource": "*",
+                                    "Effect": "Allow",
+                                    "Sid": "AllowSsoReadOnly"
+                                }, 
+                                {
+                                    "Action": [
+                                        "sso-directory:DescribeDirectory",
+                                        "sso-directory:DescribeGroups",
+                                        "sso-directory:DescribeUsers",
+                                        "sso-directory:ListGroupsForUser",
+                                        "sso-directory:ListMembersInGroup",
+                                        "sso-directory:SearchGroups",
+                                        "sso-directory:SearchUsers"
+                                    ],
+                                    "Resource": "*",
+                                    "Effect": "Allow",
+                                    "Sid": "AllowSsoDirectoryReadOnly"
+                                },
+                                {
+                                    "Action": [
+                                        "ds:DescribeDirectories",
+                                        "ds:DescribeTrusts"
+                                    ],
+                                    "Resource": "*",
+                                    "Effect": "Allow",
+                                    "Sid": "AllowDsDirectoryReadOnly"
+                                },
+                                {
+                                    "Action": [
+                                        "identitystore:ListGroups",
+                                        "identitystore:ListUsers",
+                                        "identitystore:ListGroupMemberships",
+                                        "identitystore:ListGroupMembershipsForMember",
+                                        "identitystore:IsMemberInGroups",
+                                        "identitystore:DescribeUser",
+                                        "identitystore:DescribeGroup",
+                                        "identitystore:DescribeGroupMembership"
+                                    ],
+                                    "Resource": "*",
+                                    "Effect": "Allow",
+                                    "Sid": "AllowIdentityStoreReadOnly"
                                 }
                             ],
                             "Version": "2012-10-17"

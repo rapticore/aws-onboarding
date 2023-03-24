@@ -188,6 +188,27 @@
                 "states:ListTagsForResource"
             ],
             "Resource": "*",
+            "Sid": "AllowStepFunctionsReadOnly"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "kafka:ListClusters",
+                "kafka:ListClustersV2",
+                "kafka:ListNodes",
+                "kafka:DescribeClusterOperation",
+                "kafka:ListConfigurations",
+                "kafka:DescribeConfigurationRevision"
+            ],
+            "Resource": "*",
+            "Sid": "AllowKafkaReadOnly"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "kms:ListResourceTags"
+            ],
+            "Resource": "*",
             "Effect": "Allow",
             "Sid": "AllowStepFunctionsReadOnly"
         }
