@@ -262,6 +262,29 @@ Resources:
                 Resource: "*"
                 Effect: Allow
                 Sid: AllowIdentityStoreReadOnly
+              - Action:
+                  - transfer:DescribeAccess
+                  - transfer:DescribeAgreement
+                  - transfer:DescribeCertificate
+                  - transfer:DescribeConnector
+                  - transfer:DescribeProfile
+                  - transfer:DescribeSecurityPolicy
+                  - transfer:DescribeServer
+                  - transfer:DescribeUser
+                  - transfer:DescribeWorkflow
+                  - transfer:ListAccesses
+                  - transfer:ListAgreements
+                  - transfer:ListCertificates
+                  - transfer:ListConnectors
+                  - transfer:ListProfiles
+                  - transfer:ListSecurityPolicies
+                  - transfer:ListServers
+                  - transfer:ListTagsForResource
+                  - transfer:ListUsers
+                  - transfer:ListWorkflows
+                Resource: "*"
+                Effect: Allow
+                Sid: AllowTransferReadOnly
 
             Version: "2012-10-17"
           PolicyName: RapticoreExtendedViewOnly
