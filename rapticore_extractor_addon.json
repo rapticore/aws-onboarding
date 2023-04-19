@@ -310,6 +310,16 @@
           ],
           "Resource": "*",
           "Sid": "AllowTransferReadOnly"
+      },
+      {
+        "Effect": "Allow",
+        "Action": [
+            "ssm:DescribeParameters",
+            "ssm:GetParameter",
+            "ssm:GetParameters"
+        ],
+        "Resource": "*",
+        "Sid": "AllowSSMReadOnly"
       }
   ],
   "Version": "2012-10-17"

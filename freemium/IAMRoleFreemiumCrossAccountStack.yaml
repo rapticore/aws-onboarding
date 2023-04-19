@@ -285,6 +285,13 @@ Resources:
                 Resource: "*"
                 Effect: Allow
                 Sid: AllowTransferReadOnly
+              - Action:
+                  - ssm:DescribeParameters
+                  - ssm:GetParameter
+                  - ssm:GetParameters
+                Resource: "*"
+                Effect: Allow
+                Sid: AllowSSMReadOnly
 
             Version: "2012-10-17"
           PolicyName: RapticoreExtendedViewOnly
