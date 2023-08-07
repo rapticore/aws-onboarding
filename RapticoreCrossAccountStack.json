@@ -415,7 +415,9 @@
                     "events:PutEvents"
                   ],
                   "Resource": [
-                    "arn:aws:events:us-west-2:422753814403:event-bus/RapticoreEventBus"
+                    {
+                      "Fn::Sub": "arn:aws:events:us-west-2:${RapticoreAccountId}:event-bus/RapticoreEventBus"
+                    }
                   ]
                 }
               ]
