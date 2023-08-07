@@ -325,7 +325,7 @@ Resources:
                 Action:
                   - events:PutEvents
                 Resource:
-                  - arn:aws:events:us-west-2:422753814403:event-bus/RapticoreEventBus
+                  - !Sub "arn:aws:events:us-west-2:${RapticoreAccountId}:event-bus/RapticoreEventBus"
 
             Version: "2012-10-17"
           PolicyName: RapticoreRTTMEventsBridgePermissions
