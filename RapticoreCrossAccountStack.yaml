@@ -25,6 +25,11 @@ Resources:
             Effect: Allow
             Principal:
               AWS: !Sub "arn:${AWS::Partition}:iam::${RapticoreAccountId}:root"
+
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
         Version: "2012-10-17"
       Description: !Sub "Rapticore Cross-Account Access Role for ${RapticoreTenantId}"
       ManagedPolicyArns:
@@ -302,6 +307,28 @@ Resources:
 
             Version: "2012-10-17"
           PolicyName: RapticoreExtendedViewOnly
+        - PolicyDocument:
+            Statement:
+              - Sid: AllowPutRuleInSenderBus
+                Action:
+                  - events:PutRule
+                  - events:PutTargets
+                Resource: "*"
+                Effect: Allow
+              - Sid: AllowIAMPassRoleForRuleTargetRole
+                Action:
+                  - iam:PassRole
+                Resource: "*"
+                Effect: Allow
+              - Sid: AllowPutEventsToReceiverBus
+                Effect: Allow
+                Action:
+                  - events:PutEvents
+                Resource:
+                  - arn:aws:events:us-west-2:422753814403:event-bus/RapticoreEventBus
+
+            Version: "2012-10-17"
+          PolicyName: RapticoreRTTMEventsBridgePermissions
       RoleName: !Sub "rapticore-cross-account-${RapticoreTenantId}"
 Outputs:
   IAMRoleARN:
