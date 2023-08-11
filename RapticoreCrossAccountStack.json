@@ -395,7 +395,9 @@
                   "Sid": "AllowPutRuleInSenderBus",
                   "Action": [
                     "events:PutRule",
-                    "events:PutTargets"
+                    "events:DeleteRule",
+                    "events:PutTargets",
+                    "events:RemoveTargets"
                   ],
                   "Resource": "*",
                   "Effect": "Allow"
