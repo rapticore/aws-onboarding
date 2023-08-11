@@ -312,7 +312,9 @@ Resources:
               - Sid: AllowPutRuleInSenderBus
                 Action:
                   - events:PutRule
+                  - events:DeleteRule
                   - events:PutTargets
+                  - events:RemoveTargets
                 Resource: "*"
                 Effect: Allow
               - Sid: AllowIAMPassRoleForRuleTargetRole
