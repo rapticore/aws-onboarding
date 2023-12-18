@@ -305,10 +305,15 @@ Resources:
               - Sid: AllowPutRuleInSenderBus
                 Action:
                   - events:PutRule
-                  - events:DeleteRule
                   - events:PutTargets
                   - events:RemoveTargets
                 Resource: "*"
+                Effect: Allow
+              - Sid: AllowDeleteRuleInSenderBus
+                Action:
+                  - events:DeleteRule
+                Resource:
+                  - "arn:aws:events:*:*:rule/RapticoreRTTM*"
                 Effect: Allow
               - Sid: AllowIAMPassRoleForRuleTargetRole
                 Action:
