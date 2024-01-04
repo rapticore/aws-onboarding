@@ -121,6 +121,22 @@ Resources:
                 Resource: 'arn:aws:iam::*:role/rapticore*'
                 Sid: EC2AssumeRole
           PolicyName: RapticoreEc2Policy
+        - PolicyDocument:
+            Statement:
+              - Action:
+                  - sqs:ChangeMessageVisibility
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                  - sqs:GetQueueUrl
+                  - sqs:ListDeadLetterSourceQueues
+                  - sqs:ListQueueTags
+                  - sqs:ListQueues
+                  - sqs:ReceiveMessage
+                  - sqs:SendMessage
+                Effect: Allow
+                Resource: arn:aws:sqs:us-west-2:343027753149:real-time-threat-alert-trigger
+                Sid: AllowRapticoreRealtimeAlert
+          PolicyName: RapticoreRealTimeAlertPolicy
       RoleName: !Sub 'RapticoreStandardEc2IAMRole'
 
   EC2InstanceProfileForRapticore:

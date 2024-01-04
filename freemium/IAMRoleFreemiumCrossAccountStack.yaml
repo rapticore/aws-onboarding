@@ -18,6 +18,11 @@ Resources:
             Effect: Allow
             Principal:
               AWS: !Sub "arn:${AWS::Partition}:iam::${RapticoreAccountId}:root"
+
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
         Version: "2012-10-17"
       Description: Rapticore Cross-Account Access Role for freemium
       ManagedPolicyArns:
@@ -262,9 +267,68 @@ Resources:
                 Resource: "*"
                 Effect: Allow
                 Sid: AllowIdentityStoreReadOnly
+              - Action:
+                  - transfer:DescribeAccess
+                  - transfer:DescribeAgreement
+                  - transfer:DescribeCertificate
+                  - transfer:DescribeConnector
+                  - transfer:DescribeProfile
+                  - transfer:DescribeSecurityPolicy
+                  - transfer:DescribeServer
+                  - transfer:DescribeUser
+                  - transfer:DescribeWorkflow
+                  - transfer:ListAccesses
+                  - transfer:ListAgreements
+                  - transfer:ListCertificates
+                  - transfer:ListConnectors
+                  - transfer:ListProfiles
+                  - transfer:ListSecurityPolicies
+                  - transfer:ListServers
+                  - transfer:ListTagsForResource
+                  - transfer:ListUsers
+                  - transfer:ListWorkflows
+                Resource: "*"
+                Effect: Allow
+                Sid: AllowTransferReadOnly
+              - Action:
+                  - ssm:DescribeParameters
+                  - ssm:GetParameter
+                  - ssm:GetParameters
+                Resource: "*"
+                Effect: Allow
+                Sid: AllowSSMReadOnly
 
             Version: "2012-10-17"
           PolicyName: RapticoreExtendedViewOnly
+        - PolicyDocument:
+            Statement:
+              - Sid: AllowPutRuleInSenderBus
+                Action:
+                  - events:PutRule
+                  - events:PutTargets
+                  - events:RemoveTargets
+                Resource: "*"
+                Effect: Allow
+              - Sid: AllowDeleteRuleInSenderBus
+                Action:
+                  - events:DeleteRule
+                Resource:
+                  - "arn:aws:events:*:*:rule/RapticoreRTTM*"
+                Effect: Allow
+              - Sid: AllowIAMPassRoleForRuleTargetRole
+                Action:
+                  - iam:PassRole
+                Resource: "*"
+                Effect: Allow
+              - Sid: AllowPutEventsToReceiverBus
+                Effect: Allow
+                Action:
+                  - events:PutEvents
+                Resource:
+                  - !Sub "arn:aws:events:us-west-2:${RapticoreAccountId}:event-bus/RapticoreEventBus"
+
+            Version: "2012-10-17"
+          PolicyName: RapticoreRTTMEventsBridgePermissions
       RoleName: rapticore-cross-account-freemium
 Outputs:
   IAMRoleARN:
