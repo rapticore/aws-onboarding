@@ -42,7 +42,6 @@ Resources:
                 Effect: Allow
                 NotResource:
                   - arn:aws:apigateway:*::/apikey*
-                  - arn:aws:apigateway:*::/apikeys*
                 Sid: AllowApiGatewayReadOnlyExceptAPIKeys
               - Action:
                   - cognito-identity:DescribeIdentityPool
@@ -155,7 +154,6 @@ Resources:
                 Sid: AllowEKSReadOnly
               - Action:
                   - ec2:GetEbsEncryptionByDefault
-                  - ec2:GetEbsEncryptionByDefault
                 Effect: Allow
                 Resource: "*"
                 Sid: AllowEC2ReadOnly
@@ -182,8 +180,8 @@ Resources:
                 Resource: "*"
                 Sid: AllowLambdaReadOnly
               - Action:
-                  - inspector2:Describe*"
-                  - inspector2:Get*"
+                  - inspector2:Describe*
+                  - inspector2:Get*
                   - inspector2:List*
                 Effect: Allow
                 Resource: "*"
