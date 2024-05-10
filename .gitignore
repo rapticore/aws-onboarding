@@ -1,2 +1,9 @@
-node_modules
-/.idea/
+
+# JetBrainse
+.idea/
+
+# Mac OS
+.DS_Store
+
+# Node
+node_modules/
