@@ -64,10 +64,7 @@
                 {
                   "Action": "apigateway:GET",
                   "Effect": "Allow",
-                  "NotResource": [
-                    "arn:aws:apigateway:*::/apikey*",
-                    "arn:aws:apigateway:*::/apikeys*"
-                  ],
+                  "NotResource": ["arn:aws:apigateway:*::/apikey*"],
                   "Sid": "AllowApiGatewayReadOnlyExceptAPIKeys"
                 },
                 {
@@ -188,10 +185,7 @@
                   "Sid": "AllowCodeSuiteReadOnly"
                 },
                 {
-                  "Action": [
-                    "mq:DescribeBroker",
-                    "mq:ListBrokers"
-                  ],
+                  "Action": ["mq:DescribeBroker", "mq:ListBrokers"],
                   "Effect": "Allow",
                   "Resource": "*",
                   "Sid": "AllowMQReadOnly"
@@ -208,27 +202,18 @@
                 },
                 {
                   "Effect": "Allow",
-                  "Action": [
-                    "ec2:GetEbsEncryptionByDefault",
-                    "ec2:GetEbsEncryptionByDefault"
-                  ],
+                  "Action": ["ec2:GetEbsEncryptionByDefault"],
                   "Resource": "*"
                 },
                 {
-                  "Action": [
-                    "ce:GetCostAndUsage",
-                    "ce:GetCostForecast"
-                  ],
+                  "Action": ["ce:GetCostAndUsage", "ce:GetCostForecast"],
                   "Effect": "Allow",
                   "Resource": "*",
                   "Sid": "AllowCostExplorerReadOnly"
                 },
                 {
                   "Effect": "Allow",
-                  "Action": [
-                    "kms:ListResourceTags",
-                    "kms:ListResourceTags"
-                  ],
+                  "Action": ["kms:ListResourceTags", "kms:ListResourceTags"],
                   "Resource": "*",
                   "Sid": "AllowKMSListTagsReadOnly"
                 },
@@ -323,10 +308,7 @@
                   "Sid": "AllowSsoDirectoryReadOnly"
                 },
                 {
-                  "Action": [
-                    "ds:DescribeDirectories",
-                    "ds:DescribeTrusts"
-                  ],
+                  "Action": ["ds:DescribeDirectories", "ds:DescribeTrusts"],
                   "Resource": "*",
                   "Effect": "Allow",
                   "Sid": "AllowDsDirectoryReadOnly"
@@ -403,28 +385,20 @@
                 },
                 {
                   "Sid": "AllowDeleteRuleInSenderBus",
-                  "Action": [
-                    "events:DeleteRule"
-                  ],
-                  "Resource": [
-                    "arn:aws:events:*:*:rule/RapticoreRTTM*"
-                  ],
+                  "Action": ["events:DeleteRule"],
+                  "Resource": ["arn:aws:events:*:*:rule/RapticoreRTTM*"],
                   "Effect": "Allow"
                 },
                 {
                   "Sid": "AllowIAMPassRoleForRuleTargetRole",
-                  "Action": [
-                    "iam:PassRole"
-                  ],
+                  "Action": ["iam:PassRole"],
                   "Resource": "*",
                   "Effect": "Allow"
                 },
                 {
                   "Sid": "AllowPutEventsToReceiverBus",
                   "Effect": "Allow",
-                  "Action": [
-                    "events:PutEvents"
-                  ],
+                  "Action": ["events:PutEvents"],
                   "Resource": [
                     {
                       "Fn::Sub": "arn:aws:events:us-west-2:${RapticoreAccountId}:event-bus/RapticoreEventBus"
@@ -446,10 +420,7 @@
     "IAMRoleARN": {
       "Description": "Created readonly IAM Role for Rapticore Integration",
       "Value": {
-        "Fn::GetAtt": [
-          "RapticoreIAMRole",
-          "Arn"
-        ]
+        "Fn::GetAtt": ["RapticoreIAMRole", "Arn"]
       }
     }
   }
