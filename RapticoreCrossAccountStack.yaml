@@ -321,6 +321,21 @@ Resources:
                   - geo:DescribeTracker
                 Resource: '*'
                 Sid: AllowLocationServiceReadOnly
+              - Effect: Allow
+                Action:
+                  - medialive:DescribeChannel
+                  - mediapackage:ListChannels
+                  - mediapackagev2:ListChannelGroups
+                  - mediapackagev2:GetChannelGroup
+                  - mediapackagev2:ListChannels
+                  - mediapackagev2:GetChannel
+                  - mediastore:GetLifecyclePolicy
+                  - mediastore:GetMetricPolicy
+                  - mediaconvert:ListJobs
+                  - mediaconvert:DescribeEndpoints
+                  - mediaconvert:GetPolicy
+                Resource: '*'
+                Sid: AllowMediaReadOnly
 
             Version: "2012-10-17"
           PolicyName: RapticoreExtendedViewOnly
