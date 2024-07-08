@@ -14,7 +14,7 @@ Resources:
           - Action: sts:AssumeRole
             Condition:
               StringEquals:
-                sts:ExternalId: ["rapticore-freemium"]
+                sts:ExternalId: [ "rapticore-freemium" ]
             Effect: Allow
             Principal:
               AWS: !Sub "arn:${AWS::Partition}:iam::${RapticoreAccountId}:root"

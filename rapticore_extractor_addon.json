@@ -1,365 +1,365 @@
 {
   "Statement": [
-      {
-          "Action": "apigateway:GET",
-          "Effect": "Allow",
-          "NotResource": [
-              "arn:aws:apigateway:*::/apikey*",
-              "arn:aws:apigateway:*::/apikeys*"
-          ],
-          "Sid": "AllowApiGatewayReadOnlyExceptAPIKeys"
-      },
-      {
-          "Action": [
-              "cognito-identity:DescribeIdentityPool",
-              "cognito-identity:LookupDeveloperIdentity",
-              "cognito-identity:ListIdentities",
-              "cognito-identity:ListTagsForResource",
-              "cognito-identity:GetIdentityPoolRoles",
-              "cognito-identity:ListIdentityPools",
-              "cognito-identity:DescribeIdentity"
-          ],
-          "Effect": "Allow",
-          "Resource": "*",
-          "Sid": "AllowCognitoIdentityPoolsReadOnly"
-      },
-      {
-          "Action": [
-              "kinesisanalytics:ListTagsForResource",
-              "kinesisanalytics:GetApplicationState",
-              "kinesisanalytics:DescribeApplication",
-              "kinesisanalytics:DiscoverInputSchema",
-              "kinesisanalytics:ListApplications"
-          ],
-          "Effect": "Allow",
-          "Resource": "*",
-          "Sid": "AllowKinesisAnalyticsReadOnly"
-      },
-      {
-          "Action": [
-              "cognito-idp:AdminGetDevice",
-              "cognito-idp:AdminGetUser",
-              "cognito-idp:AdminListDevices",
-              "cognito-idp:AdminListGroupsForUser",
-              "cognito-idp:DescribeIdentityProvider",
-              "cognito-idp:DescribeResourceServer",
-              "cognito-idp:DescribeRiskConfiguration",
-              "cognito-idp:DescribeUserPool",
-              "cognito-idp:DescribeUserPoolClient",
-              "cognito-idp:DescribeUserPoolDomain",
-              "cognito-idp:GetIdentityProviderByIdentifier",
-              "cognito-idp:GetSigningCertificate",
-              "cognito-idp:GetUICustomization",
-              "cognito-idp:GetUserPoolMfaConfig",
-              "cognito-idp:ListDevices",
-              "cognito-idp:ListGroups",
-              "cognito-idp:ListIdentityProviders",
-              "cognito-idp:ListResourceServers",
-              "cognito-idp:ListTagsForResource",
-              "cognito-idp:ListUserPoolClients",
-              "cognito-idp:ListUserPools",
-              "cognito-idp:ListUsers",
-              "cognito-idp:ListUsersInGroup"
-          ],
-          "Effect": "Allow",
-          "Resource": "*",
-          "Sid": "AllowCognitoUserPoolsReadOnly"
-      },
-      {
-          "Action": [
-              "ecr:DescribeImageScanFindings",
-              "ecr:DescribeRepositories",
-              "ecs:DescribeClusters",
-              "ecs:DescribeContainerInstances",
-              "ecs:DescribeServices",
-              "ecs:DescribeTaskDefinition",
-              "ecs:DescribeTaskSets",
-              "ecs:DescribeTasks",
-              "ecs:ListAccountSettings",
-              "ecs:ListAttributes",
-              "ecs:ListClusters",
-              "ecs:ListContainerInstances",
-              "ecs:ListServices",
-              "ecs:ListTagsForResource",
-              "ecs:ListTaskDefinitionFamilies",
-              "ecs:ListTaskDefinitions",
-              "ecs:ListTasks"
-          ],
-          "Effect": "Allow",
-          "Resource": "*",
-          "Sid": "AllowElasticContainerServiceReadOnly"
-      },
-      {
-          "Action": "cloudhsm:DescribeClusters",
-          "Effect": "Allow",
-          "Resource": "*",
-          "Sid": "AllowCloudHSMReadOnly"
-      },
-      {
-          "Action": [
-              "glue:GetJobs",
-              "glue:ListWorkflows",
-              "glue:GetWorkflow",
-              "glue:GetClassifiers",
-              "glue:GetCrawlers",
-              "glue:GetDatabases",
-              "glue:GetSecurityConfigurations",
-              "glue:GetTables"
-          ],
-          "Effect": "Allow",
-          "Resource": "*",
-          "Sid": "AllowGlueReadOnly"
-      },
-      {
-          "Action": "wafv2:GetWebACL",
-          "Effect": "Allow",
-          "Resource": "*",
-          "Sid": "AllowWAFv2ReadOnly"
-      },
-      {
-          "Action": [
-              "codebuild:BatchGetBuilds",
-              "codebuild:BatchGetProjects",
-              "codepipeline:GetPipeline",
-              "codepipeline:ListTagsForResource"
-          ],
-          "Effect": "Allow",
-          "Resource": "*",
-          "Sid": "AllowCodeSuiteReadOnly"
-      },
-      {
-          "Action": [
-              "mq:DescribeBroker",
-              "mq:ListBrokers"
-          ],
-          "Effect": "Allow",
-          "Resource": "*",
-          "Sid": "AllowMQReadOnly"
-      },
-      {
-          "Action": [
-              "eks:DescribeCluster",
-              "eks:ListClusters",
-              "eks:ListNodegroups"
-          ],
-          "Effect": "Allow",
-          "Resource": "*",
-          "Sid": "AllowEKSReadOnly"
-      },
-      {
-          "Effect": "Allow",
-          "Action": [
-              "ec2:GetEbsEncryptionByDefault",
-              "ec2:GetEbsEncryptionByDefault"
-          ],
-          "Resource": "*"
-      },
-      {
-          "Action": [
-              "ce:GetCostAndUsage",
-              "ce:GetCostForecast"
-          ],
-          "Effect": "Allow",
-          "Resource": "*",
-          "Sid": "AllowCostExplorerReadOnly"
-      },
-      {
-          "Effect": "Allow",
-          "Action": [
-              "kms:ListResourceTags",
-              "kms:GetKeyRotationStatus"
-          ],
-          "Resource": "*",
-          "Sid": "AllowKMSReadOnly"
-      },
-      {
-          "Effect": "Allow",
-          "Action": [
-                  "inspector2:Describe*",
-                  "inspector2:Get*",
-                  "inspector2:List*"
-          ],
-          "Resource": "*",
-          "Sid": "AllowInspector2ReadOnly"
-      },
-      {
-          "Action": [
-              "states:ListStateMachines",
-              "states:DescribeStateMachine",
-              "states:ListTagsForResource"
-          ],
-          "Resource": "*",
-          "Effect": "Allow",
-          "Sid": "AllowStepFunctionsReadOnly"
-      },
-      {
-          "Action": [
-              "kafka:ListClusters",
-              "kafka:ListClustersV2",
-              "kafka:ListNodes",
-              "kafka:DescribeClusterOperation",
-              "kafka:ListConfigurations",
-              "kafka:DescribeConfigurationRevision"
-          ],
-          "Resource": "*",
-          "Effect": "Allow",
-          "Sid": "AllowKafkaReadOnly"
-      },
-      {
-          "Action": [
-              "sso:DescribeAccountAssignmentCreationStatus",
-              "sso:DescribeAccountAssignmentDeletionStatus",
-              "sso:DescribePermissionSet",
-              "sso:DescribePermissionSetProvisioningStatus",
-              "sso:DescribePermissionsPolicies",
-              "sso:DescribeRegisteredRegions",
-              "sso:GetApplicationInstance",
-              "sso:GetApplicationTemplate",
-              "sso:GetInlinePolicyForPermissionSet",
-              "sso:GetManagedApplicationInstance",
-              "sso:GetMfaDeviceManagementForDirectory",
-              "sso:GetPermissionSet",
-              "sso:GetPermissionsPolicy",
-              "sso:GetProfile",
-              "sso:GetSharedSsoConfiguration",
-              "sso:GetSsoConfiguration",
-              "sso:GetSSOStatus",
-              "sso:GetTrust",
-              "sso:ListAccountAssignmentCreationStatus",
-              "sso:ListAccountAssignmentDeletionStatus",
-              "sso:ListAccountAssignments",
-              "sso:ListAccountsForProvisionedPermissionSet",
-              "sso:ListApplicationInstanceCertificates",
-              "sso:ListApplicationInstances",
-              "sso:ListApplications",
-              "sso:ListApplicationTemplates",
-              "sso:ListDirectoryAssociations",
-              "sso:ListInstances",
-              "sso:ListManagedPoliciesInPermissionSet",
-              "sso:ListPermissionSetProvisioningStatus",
-              "sso:ListPermissionSets",
-              "sso:ListPermissionSetsProvisionedToAccount",
-              "sso:ListProfileAssociations",
-              "sso:ListProfiles",
-              "sso:ListTagsForResource",
-              "iam:ListPolicies"
-          ],
-          "Resource": "*",
-          "Effect": "Allow",
-          "Sid": "AllowSsoReadOnly"
-      },
-      {
-          "Action": [
-              "sso-directory:DescribeDirectory",
-              "sso-directory:DescribeGroups",
-              "sso-directory:DescribeUsers",
-              "sso-directory:ListGroupsForUser",
-              "sso-directory:ListMembersInGroup",
-              "sso-directory:SearchGroups",
-              "sso-directory:SearchUsers"
-          ],
-          "Resource": "*",
-          "Effect": "Allow",
-          "Sid": "AllowSsoDirectoryReadOnly"
-      },
-      {
-          "Action": [
-              "ds:DescribeDirectories",
-              "ds:DescribeTrusts"
-          ],
-          "Resource": "*",
-          "Effect": "Allow",
-          "Sid": "AllowDsDirectoryReadOnly"
-      },
-      {
-          "Action": [
-              "identitystore:ListGroups",
-              "identitystore:ListUsers",
-              "identitystore:ListGroupMemberships",
-              "identitystore:ListGroupMembershipsForMember",
-              "identitystore:IsMemberInGroups",
-              "identitystore:DescribeUser",
-              "identitystore:DescribeGroup",
-              "identitystore:DescribeGroupMembership"
-          ],
-          "Resource": "*",
-          "Effect": "Allow",
-          "Sid": "AllowIdentityStoreReadOnly"
-      },
-      {
-          "Effect": "Allow",
-          "Action": [
-              "transfer:DescribeAccess",
-              "transfer:DescribeAgreement",
-              "transfer:DescribeCertificate",
-              "transfer:DescribeConnector",
-              "transfer:DescribeProfile",
-              "transfer:DescribeSecurityPolicy",
-              "transfer:DescribeServer",
-              "transfer:DescribeUser",
-              "transfer:DescribeWorkflow",
-              "transfer:ListAccesses",
-              "transfer:ListAgreements",
-              "transfer:ListCertificates",
-              "transfer:ListConnectors",
-              "transfer:ListProfiles",
-              "transfer:ListSecurityPolicies",
-              "transfer:ListServers",
-              "transfer:ListTagsForResource",
-              "transfer:ListUsers",
-              "transfer:ListWorkflows"
-          ],
-          "Resource": "*",
-          "Sid": "AllowTransferReadOnly"
-      },
-      {
-        "Effect": "Allow",
-        "Action": [
-            "ssm:DescribeParameters",
-            "ssm:GetParameter",
-            "ssm:GetParameters"
-        ],
-        "Resource": "*",
-        "Sid": "AllowSSMReadOnly"
-      },
-      {
-        "Effect": "Allow",
-        "Action": [
-          "geo:ListMaps",
-          "geo:ListPlaceIndexes",
-          "geo:ListRouteCalculators",
-          "geo:ListGeofences",
-          "geo:ListGeofenceCollections",
-          "geo:ListTrackers",
-          "geo:ListTrackerConsumers",
-          "geo:ListTagsForResource",
-          "geo:DescribeMap",
-          "geo:DescribePlaceIndex",
-          "geo:DescribeRouteCalculator",
-          "geo:DescribeGeofenceCollection",
-          "geo:DescribeTracker"
-        ],
-        "Resource": "*",
-        "Sid": "AllowLocationServiceReadOnly"
-      },
-        {
-          "Effect": "Allow",
-          "Action": [
-            "medialive:DescribeChannel",
-            "mediapackage:ListChannels",
-            "mediapackagev2:ListChannelGroups",
-            "mediapackagev2:GetChannelGroup",
-            "mediapackagev2:ListChannels",
-            "mediapackagev2:GetChannel",
-            "mediastore:GetLifecyclePolicy",
-            "mediastore:GetMetricPolicy",
-            "mediaconvert:ListJobs",
-            "mediaconvert:DescribeEndpoints",
-            "mediaconvert:GetPolicy"
-          ],
-          "Resource": "*",
-          "Sid": "AllowMediaReadOnly"
-        }
+    {
+      "Action": "apigateway:GET",
+      "Effect": "Allow",
+      "NotResource": [
+        "arn:aws:apigateway:*::/apikey*",
+        "arn:aws:apigateway:*::/apikeys*"
+      ],
+      "Sid": "AllowApiGatewayReadOnlyExceptAPIKeys"
+    },
+    {
+      "Action": [
+        "cognito-identity:DescribeIdentityPool",
+        "cognito-identity:LookupDeveloperIdentity",
+        "cognito-identity:ListIdentities",
+        "cognito-identity:ListTagsForResource",
+        "cognito-identity:GetIdentityPoolRoles",
+        "cognito-identity:ListIdentityPools",
+        "cognito-identity:DescribeIdentity"
+      ],
+      "Effect": "Allow",
+      "Resource": "*",
+      "Sid": "AllowCognitoIdentityPoolsReadOnly"
+    },
+    {
+      "Action": [
+        "kinesisanalytics:ListTagsForResource",
+        "kinesisanalytics:GetApplicationState",
+        "kinesisanalytics:DescribeApplication",
+        "kinesisanalytics:DiscoverInputSchema",
+        "kinesisanalytics:ListApplications"
+      ],
+      "Effect": "Allow",
+      "Resource": "*",
+      "Sid": "AllowKinesisAnalyticsReadOnly"
+    },
+    {
+      "Action": [
+        "cognito-idp:AdminGetDevice",
+        "cognito-idp:AdminGetUser",
+        "cognito-idp:AdminListDevices",
+        "cognito-idp:AdminListGroupsForUser",
+        "cognito-idp:DescribeIdentityProvider",
+        "cognito-idp:DescribeResourceServer",
+        "cognito-idp:DescribeRiskConfiguration",
+        "cognito-idp:DescribeUserPool",
+        "cognito-idp:DescribeUserPoolClient",
+        "cognito-idp:DescribeUserPoolDomain",
+        "cognito-idp:GetIdentityProviderByIdentifier",
+        "cognito-idp:GetSigningCertificate",
+        "cognito-idp:GetUICustomization",
+        "cognito-idp:GetUserPoolMfaConfig",
+        "cognito-idp:ListDevices",
+        "cognito-idp:ListGroups",
+        "cognito-idp:ListIdentityProviders",
+        "cognito-idp:ListResourceServers",
+        "cognito-idp:ListTagsForResource",
+        "cognito-idp:ListUserPoolClients",
+        "cognito-idp:ListUserPools",
+        "cognito-idp:ListUsers",
+        "cognito-idp:ListUsersInGroup"
+      ],
+      "Effect": "Allow",
+      "Resource": "*",
+      "Sid": "AllowCognitoUserPoolsReadOnly"
+    },
+    {
+      "Action": [
+        "ecr:DescribeImageScanFindings",
+        "ecr:DescribeRepositories",
+        "ecs:DescribeClusters",
+        "ecs:DescribeContainerInstances",
+        "ecs:DescribeServices",
+        "ecs:DescribeTaskDefinition",
+        "ecs:DescribeTaskSets",
+        "ecs:DescribeTasks",
+        "ecs:ListAccountSettings",
+        "ecs:ListAttributes",
+        "ecs:ListClusters",
+        "ecs:ListContainerInstances",
+        "ecs:ListServices",
+        "ecs:ListTagsForResource",
+        "ecs:ListTaskDefinitionFamilies",
+        "ecs:ListTaskDefinitions",
+        "ecs:ListTasks"
+      ],
+      "Effect": "Allow",
+      "Resource": "*",
+      "Sid": "AllowElasticContainerServiceReadOnly"
+    },
+    {
+      "Action": "cloudhsm:DescribeClusters",
+      "Effect": "Allow",
+      "Resource": "*",
+      "Sid": "AllowCloudHSMReadOnly"
+    },
+    {
+      "Action": [
+        "glue:GetJobs",
+        "glue:ListWorkflows",
+        "glue:GetWorkflow",
+        "glue:GetClassifiers",
+        "glue:GetCrawlers",
+        "glue:GetDatabases",
+        "glue:GetSecurityConfigurations",
+        "glue:GetTables"
+      ],
+      "Effect": "Allow",
+      "Resource": "*",
+      "Sid": "AllowGlueReadOnly"
+    },
+    {
+      "Action": "wafv2:GetWebACL",
+      "Effect": "Allow",
+      "Resource": "*",
+      "Sid": "AllowWAFv2ReadOnly"
+    },
+    {
+      "Action": [
+        "codebuild:BatchGetBuilds",
+        "codebuild:BatchGetProjects",
+        "codepipeline:GetPipeline",
+        "codepipeline:ListTagsForResource"
+      ],
+      "Effect": "Allow",
+      "Resource": "*",
+      "Sid": "AllowCodeSuiteReadOnly"
+    },
+    {
+      "Action": [
+        "mq:DescribeBroker",
+        "mq:ListBrokers"
+      ],
+      "Effect": "Allow",
+      "Resource": "*",
+      "Sid": "AllowMQReadOnly"
+    },
+    {
+      "Action": [
+        "eks:DescribeCluster",
+        "eks:ListClusters",
+        "eks:ListNodegroups"
+      ],
+      "Effect": "Allow",
+      "Resource": "*",
+      "Sid": "AllowEKSReadOnly"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:GetEbsEncryptionByDefault",
+        "ec2:GetEbsEncryptionByDefault"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Action": [
+        "ce:GetCostAndUsage",
+        "ce:GetCostForecast"
+      ],
+      "Effect": "Allow",
+      "Resource": "*",
+      "Sid": "AllowCostExplorerReadOnly"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "kms:ListResourceTags",
+        "kms:GetKeyRotationStatus"
+      ],
+      "Resource": "*",
+      "Sid": "AllowKMSReadOnly"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "inspector2:Describe*",
+        "inspector2:Get*",
+        "inspector2:List*"
+      ],
+      "Resource": "*",
+      "Sid": "AllowInspector2ReadOnly"
+    },
+    {
+      "Action": [
+        "states:ListStateMachines",
+        "states:DescribeStateMachine",
+        "states:ListTagsForResource"
+      ],
+      "Resource": "*",
+      "Effect": "Allow",
+      "Sid": "AllowStepFunctionsReadOnly"
+    },
+    {
+      "Action": [
+        "kafka:ListClusters",
+        "kafka:ListClustersV2",
+        "kafka:ListNodes",
+        "kafka:DescribeClusterOperation",
+        "kafka:ListConfigurations",
+        "kafka:DescribeConfigurationRevision"
+      ],
+      "Resource": "*",
+      "Effect": "Allow",
+      "Sid": "AllowKafkaReadOnly"
+    },
+    {
+      "Action": [
+        "sso:DescribeAccountAssignmentCreationStatus",
+        "sso:DescribeAccountAssignmentDeletionStatus",
+        "sso:DescribePermissionSet",
+        "sso:DescribePermissionSetProvisioningStatus",
+        "sso:DescribePermissionsPolicies",
+        "sso:DescribeRegisteredRegions",
+        "sso:GetApplicationInstance",
+        "sso:GetApplicationTemplate",
+        "sso:GetInlinePolicyForPermissionSet",
+        "sso:GetManagedApplicationInstance",
+        "sso:GetMfaDeviceManagementForDirectory",
+        "sso:GetPermissionSet",
+        "sso:GetPermissionsPolicy",
+        "sso:GetProfile",
+        "sso:GetSharedSsoConfiguration",
+        "sso:GetSsoConfiguration",
+        "sso:GetSSOStatus",
+        "sso:GetTrust",
+        "sso:ListAccountAssignmentCreationStatus",
+        "sso:ListAccountAssignmentDeletionStatus",
+        "sso:ListAccountAssignments",
+        "sso:ListAccountsForProvisionedPermissionSet",
+        "sso:ListApplicationInstanceCertificates",
+        "sso:ListApplicationInstances",
+        "sso:ListApplications",
+        "sso:ListApplicationTemplates",
+        "sso:ListDirectoryAssociations",
+        "sso:ListInstances",
+        "sso:ListManagedPoliciesInPermissionSet",
+        "sso:ListPermissionSetProvisioningStatus",
+        "sso:ListPermissionSets",
+        "sso:ListPermissionSetsProvisionedToAccount",
+        "sso:ListProfileAssociations",
+        "sso:ListProfiles",
+        "sso:ListTagsForResource",
+        "iam:ListPolicies"
+      ],
+      "Resource": "*",
+      "Effect": "Allow",
+      "Sid": "AllowSsoReadOnly"
+    },
+    {
+      "Action": [
+        "sso-directory:DescribeDirectory",
+        "sso-directory:DescribeGroups",
+        "sso-directory:DescribeUsers",
+        "sso-directory:ListGroupsForUser",
+        "sso-directory:ListMembersInGroup",
+        "sso-directory:SearchGroups",
+        "sso-directory:SearchUsers"
+      ],
+      "Resource": "*",
+      "Effect": "Allow",
+      "Sid": "AllowSsoDirectoryReadOnly"
+    },
+    {
+      "Action": [
+        "ds:DescribeDirectories",
+        "ds:DescribeTrusts"
+      ],
+      "Resource": "*",
+      "Effect": "Allow",
+      "Sid": "AllowDsDirectoryReadOnly"
+    },
+    {
+      "Action": [
+        "identitystore:ListGroups",
+        "identitystore:ListUsers",
+        "identitystore:ListGroupMemberships",
+        "identitystore:ListGroupMembershipsForMember",
+        "identitystore:IsMemberInGroups",
+        "identitystore:DescribeUser",
+        "identitystore:DescribeGroup",
+        "identitystore:DescribeGroupMembership"
+      ],
+      "Resource": "*",
+      "Effect": "Allow",
+      "Sid": "AllowIdentityStoreReadOnly"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "transfer:DescribeAccess",
+        "transfer:DescribeAgreement",
+        "transfer:DescribeCertificate",
+        "transfer:DescribeConnector",
+        "transfer:DescribeProfile",
+        "transfer:DescribeSecurityPolicy",
+        "transfer:DescribeServer",
+        "transfer:DescribeUser",
+        "transfer:DescribeWorkflow",
+        "transfer:ListAccesses",
+        "transfer:ListAgreements",
+        "transfer:ListCertificates",
+        "transfer:ListConnectors",
+        "transfer:ListProfiles",
+        "transfer:ListSecurityPolicies",
+        "transfer:ListServers",
+        "transfer:ListTagsForResource",
+        "transfer:ListUsers",
+        "transfer:ListWorkflows"
+      ],
+      "Resource": "*",
+      "Sid": "AllowTransferReadOnly"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ssm:DescribeParameters",
+        "ssm:GetParameter",
+        "ssm:GetParameters"
+      ],
+      "Resource": "*",
+      "Sid": "AllowSSMReadOnly"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "geo:ListMaps",
+        "geo:ListPlaceIndexes",
+        "geo:ListRouteCalculators",
+        "geo:ListGeofences",
+        "geo:ListGeofenceCollections",
+        "geo:ListTrackers",
+        "geo:ListTrackerConsumers",
+        "geo:ListTagsForResource",
+        "geo:DescribeMap",
+        "geo:DescribePlaceIndex",
+        "geo:DescribeRouteCalculator",
+        "geo:DescribeGeofenceCollection",
+        "geo:DescribeTracker"
+      ],
+      "Resource": "*",
+      "Sid": "AllowLocationServiceReadOnly"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "medialive:DescribeChannel",
+        "mediapackage:ListChannels",
+        "mediapackagev2:ListChannelGroups",
+        "mediapackagev2:GetChannelGroup",
+        "mediapackagev2:ListChannels",
+        "mediapackagev2:GetChannel",
+        "mediastore:GetLifecyclePolicy",
+        "mediastore:GetMetricPolicy",
+        "mediaconvert:ListJobs",
+        "mediaconvert:DescribeEndpoints",
+        "mediaconvert:GetPolicy"
+      ],
+      "Resource": "*",
+      "Sid": "AllowMediaReadOnly"
+    }
   ],
   "Version": "2012-10-17"
 }
