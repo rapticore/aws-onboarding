@@ -118,6 +118,7 @@ Resources:
                   - glue:GetDatabases
                   - glue:GetSecurityConfigurations
                   - glue:GetTags
+                  - glue:GetTables
                 Effect: Allow
                 Resource: "*"
                 Sid: AllowGlueReadOnly
@@ -165,9 +166,10 @@ Resources:
                 Sid: AllowIAMCreateAnalyzer
               - Action:
                   - kms:ListResourceTags
+                  - kms:GetKeyRotationStatus
                 Effect: Allow
                 Resource: "*"
-                Sid: AllowKMSListTagsReadOnly
+                Sid: AllowKMSReadOnly
               - Action:
                   - lambda:GetFunction
                   - lambda:ListFunctions

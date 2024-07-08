@@ -103,7 +103,8 @@
               "glue:GetClassifiers",
               "glue:GetCrawlers",
               "glue:GetDatabases",
-              "glue:GetSecurityConfigurations"
+              "glue:GetSecurityConfigurations",
+              "glue:GetTables"
           ],
           "Effect": "Allow",
           "Resource": "*",
@@ -166,10 +167,10 @@
           "Effect": "Allow",
           "Action": [
               "kms:ListResourceTags",
-              "kms:ListResourceTags"
+              "kms:GetKeyRotationStatus"
           ],
           "Resource": "*",
-          "Sid": "AllowKMSListTagsReadOnly"
+          "Sid": "AllowKMSReadOnly"
       },
       {
           "Effect": "Allow",
