@@ -363,6 +363,26 @@
                   ],
                   "Resource": "*",
                   "Sid": "AllowSSMReadOnly"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "geo:ListMaps",
+                    "geo:ListPlaceIndexes",
+                    "geo:ListRouteCalculators",
+                    "geo:ListGeofences",
+                    "geo:ListGeofenceCollections",
+                    "geo:ListTrackers",
+                    "geo:ListTrackerConsumers",
+                    "geo:ListTagsForResource",
+                    "geo:DescribeMap",
+                    "geo:DescribePlaceIndex",
+                    "geo:DescribeRouteCalculator",
+                    "geo:DescribeGeofenceCollection",
+                    "geo:DescribeTracker"
+                  ],
+                  "Resource": "*",
+                  "Sid": "AllowLocationServiceReadOnly"
                 }
               ],
               "Version": "2012-10-17"
