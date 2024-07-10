@@ -64,7 +64,9 @@
                 {
                   "Action": "apigateway:GET",
                   "Effect": "Allow",
-                  "NotResource": ["arn:aws:apigateway:*::/apikey*"],
+                  "NotResource": [
+                    "arn:aws:apigateway:*::/apikey*"
+                  ],
                   "Sid": "AllowApiGatewayReadOnlyExceptAPIKeys"
                 },
                 {
@@ -161,7 +163,8 @@
                     "glue:GetClassifiers",
                     "glue:GetCrawlers",
                     "glue:GetDatabases",
-                    "glue:GetSecurityConfigurations"
+                    "glue:GetSecurityConfigurations",
+                    "glue:GetTables"
                   ],
                   "Effect": "Allow",
                   "Resource": "*",
@@ -185,7 +188,10 @@
                   "Sid": "AllowCodeSuiteReadOnly"
                 },
                 {
-                  "Action": ["mq:DescribeBroker", "mq:ListBrokers"],
+                  "Action": [
+                    "mq:DescribeBroker",
+                    "mq:ListBrokers"
+                  ],
                   "Effect": "Allow",
                   "Resource": "*",
                   "Sid": "AllowMQReadOnly"
@@ -202,20 +208,28 @@
                 },
                 {
                   "Effect": "Allow",
-                  "Action": ["ec2:GetEbsEncryptionByDefault"],
+                  "Action": [
+                    "ec2:GetEbsEncryptionByDefault"
+                  ],
                   "Resource": "*"
                 },
                 {
-                  "Action": ["ce:GetCostAndUsage", "ce:GetCostForecast"],
+                  "Action": [
+                    "ce:GetCostAndUsage",
+                    "ce:GetCostForecast"
+                  ],
                   "Effect": "Allow",
                   "Resource": "*",
                   "Sid": "AllowCostExplorerReadOnly"
                 },
                 {
                   "Effect": "Allow",
-                  "Action": ["kms:ListResourceTags", "kms:ListResourceTags"],
+                  "Action": [
+                    "kms:ListResourceTags",
+                    "kms:GetKeyRotationStatus"
+                  ],
                   "Resource": "*",
-                  "Sid": "AllowKMSListTagsReadOnly"
+                  "Sid": "AllowKMSReadOnly"
                 },
                 {
                   "Effect": "Allow",
@@ -308,7 +322,10 @@
                   "Sid": "AllowSsoDirectoryReadOnly"
                 },
                 {
-                  "Action": ["ds:DescribeDirectories", "ds:DescribeTrusts"],
+                  "Action": [
+                    "ds:DescribeDirectories",
+                    "ds:DescribeTrusts"
+                  ],
                   "Resource": "*",
                   "Effect": "Allow",
                   "Sid": "AllowDsDirectoryReadOnly"
@@ -363,6 +380,44 @@
                   ],
                   "Resource": "*",
                   "Sid": "AllowSSMReadOnly"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "geo:ListMaps",
+                    "geo:ListPlaceIndexes",
+                    "geo:ListRouteCalculators",
+                    "geo:ListGeofences",
+                    "geo:ListGeofenceCollections",
+                    "geo:ListTrackers",
+                    "geo:ListTrackerConsumers",
+                    "geo:ListTagsForResource",
+                    "geo:DescribeMap",
+                    "geo:DescribePlaceIndex",
+                    "geo:DescribeRouteCalculator",
+                    "geo:DescribeGeofenceCollection",
+                    "geo:DescribeTracker"
+                  ],
+                  "Resource": "*",
+                  "Sid": "AllowLocationServiceReadOnly"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "medialive:DescribeChannel",
+                    "mediapackage:ListChannels",
+                    "mediapackagev2:ListChannelGroups",
+                    "mediapackagev2:GetChannelGroup",
+                    "mediapackagev2:ListChannels",
+                    "mediapackagev2:GetChannel",
+                    "mediastore:GetLifecyclePolicy",
+                    "mediastore:GetMetricPolicy",
+                    "mediaconvert:ListJobs",
+                    "mediaconvert:DescribeEndpoints",
+                    "mediaconvert:GetPolicy"
+                  ],
+                  "Resource": "*",
+                  "Sid": "AllowMediaReadOnly"
                 }
               ],
               "Version": "2012-10-17"
@@ -385,20 +440,28 @@
                 },
                 {
                   "Sid": "AllowDeleteRuleInSenderBus",
-                  "Action": ["events:DeleteRule"],
-                  "Resource": ["arn:aws:events:*:*:rule/RapticoreRTTM*"],
+                  "Action": [
+                    "events:DeleteRule"
+                  ],
+                  "Resource": [
+                    "arn:aws:events:*:*:rule/RapticoreRTTM*"
+                  ],
                   "Effect": "Allow"
                 },
                 {
                   "Sid": "AllowIAMPassRoleForRuleTargetRole",
-                  "Action": ["iam:PassRole"],
+                  "Action": [
+                    "iam:PassRole"
+                  ],
                   "Resource": "*",
                   "Effect": "Allow"
                 },
                 {
                   "Sid": "AllowPutEventsToReceiverBus",
                   "Effect": "Allow",
-                  "Action": ["events:PutEvents"],
+                  "Action": [
+                    "events:PutEvents"
+                  ],
                   "Resource": [
                     {
                       "Fn::Sub": "arn:aws:events:us-west-2:${RapticoreAccountId}:event-bus/RapticoreEventBus"
@@ -420,7 +483,10 @@
     "IAMRoleARN": {
       "Description": "Created readonly IAM Role for Rapticore Integration",
       "Value": {
-        "Fn::GetAtt": ["RapticoreIAMRole", "Arn"]
+        "Fn::GetAtt": [
+          "RapticoreIAMRole",
+          "Arn"
+        ]
       }
     }
   }

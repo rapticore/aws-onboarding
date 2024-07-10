@@ -14,7 +14,7 @@ Resources:
           - Action: sts:AssumeRole
             Condition:
               StringEquals:
-                sts:ExternalId: ["rapticore-freemium"]
+                sts:ExternalId: [ "rapticore-freemium" ]
             Effect: Allow
             Principal:
               AWS: !Sub "arn:${AWS::Partition}:iam::${RapticoreAccountId}:root"
@@ -118,6 +118,7 @@ Resources:
                   - glue:GetDatabases
                   - glue:GetSecurityConfigurations
                   - glue:GetTags
+                  - glue:GetTables
                 Effect: Allow
                 Resource: "*"
                 Sid: AllowGlueReadOnly
@@ -165,9 +166,10 @@ Resources:
                 Sid: AllowIAMCreateAnalyzer
               - Action:
                   - kms:ListResourceTags
+                  - kms:GetKeyRotationStatus
                 Effect: Allow
                 Resource: "*"
-                Sid: AllowKMSListTagsReadOnly
+                Sid: AllowKMSReadOnly
               - Action:
                   - lambda:GetFunction
                   - lambda:ListFunctions
@@ -297,6 +299,38 @@ Resources:
                 Resource: "*"
                 Effect: Allow
                 Sid: AllowSSMReadOnly
+              - Effect: Allow
+                Action:
+                  - geo:ListMaps
+                  - geo:ListPlaceIndexes
+                  - geo:ListRouteCalculators
+                  - geo:ListGeofences
+                  - geo:ListGeofenceCollections
+                  - geo:ListTrackers
+                  - geo:ListTrackerConsumers
+                  - geo:ListTagsForResource
+                  - geo:DescribeMap
+                  - geo:DescribePlaceIndex
+                  - geo:DescribeRouteCalculator
+                  - geo:DescribeGeofenceCollection
+                  - geo:DescribeTracker
+                Resource: '*'
+                Sid: AllowLocationServiceReadOnly
+              - Effect: Allow
+                Action:
+                  - medialive:DescribeChannel
+                  - mediapackage:ListChannels
+                  - mediapackagev2:ListChannelGroups
+                  - mediapackagev2:GetChannelGroup
+                  - mediapackagev2:ListChannels
+                  - mediapackagev2:GetChannel
+                  - mediastore:GetLifecyclePolicy
+                  - mediastore:GetMetricPolicy
+                  - mediaconvert:ListJobs
+                  - mediaconvert:DescribeEndpoints
+                  - mediaconvert:GetPolicy
+                Resource: '*'
+                Sid: AllowMediaReadOnly
 
             Version: "2012-10-17"
           PolicyName: RapticoreExtendedViewOnly
