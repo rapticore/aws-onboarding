@@ -418,6 +418,15 @@
                   ],
                   "Resource": "*",
                   "Sid": "AllowMediaReadOnly"
+                },
+                {
+                  "Action": [
+                    "rekognition:DescribeDataset",
+                    "rekognition:DescribeProjects"
+                  ],
+                  "Resource": "*",
+                  "Effect": "Allow",
+                  "Sid": "AllowRekognitionReadOnly"
                 }
               ],
               "Version": "2012-10-17"

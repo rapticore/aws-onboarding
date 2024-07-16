@@ -331,6 +331,12 @@ Resources:
                   - mediaconvert:GetPolicy
                 Resource: '*'
                 Sid: AllowMediaReadOnly
+              - Effect: Allow
+                Action:
+                  - rekognition:DescribeDataset
+                  - rekognition:DescribeProjects
+                Resource: "*"
+                Sid: AllowRekognitionReadOnly
 
             Version: "2012-10-17"
           PolicyName: RapticoreExtendedViewOnly
