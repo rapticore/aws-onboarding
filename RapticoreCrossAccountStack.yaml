@@ -319,8 +319,14 @@ Resources:
                   - geo:DescribeRouteCalculator
                   - geo:DescribeGeofenceCollection
                   - geo:DescribeTracker
-                Resource: '*'
+                Resource: "*"
                 Sid: AllowLocationServiceReadOnly
+              - Effect: Allow
+                Action:
+                  - rekognition:DescribeDataset
+                  - rekognition:DescribeProjects
+                Resource: "*"
+                Sid: AllowRekognitionReadOnly
               - Effect: Allow
                 Action:
                   - medialive:DescribeChannel
@@ -334,7 +340,7 @@ Resources:
                   - mediaconvert:ListJobs
                   - mediaconvert:DescribeEndpoints
                   - mediaconvert:GetPolicy
-                Resource: '*'
+                Resource: "*"
                 Sid: AllowMediaReadOnly
 
             Version: "2012-10-17"
