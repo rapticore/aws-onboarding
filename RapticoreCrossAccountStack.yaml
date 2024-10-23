@@ -662,6 +662,18 @@ Resources:
             Resource: '*'
             Sid: AllowMediaReadOnly
         Version: '2012-10-17'
+  RapticoreReactiveRemediationPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - ec2:RevokeSecurityGroupIngress
+              - s3:PutBucketPublicAccessBlock
+            Resource: '*'
+            Effect: Allow
+            Sid: AllowReactiveRemediationChanges
+        Version: '2012-10-17'
   RapticoreIAMRole:
     Type: AWS::IAM::Role
     Properties:
@@ -688,6 +700,7 @@ Resources:
         - !Ref RapticoreExtendedViewOnlyPolicy2
         - !Ref RapticoreExtendedViewOnlyPolicy3
         - !Ref RapticoreExtendedViewOnlyPolicy4
+        - !Ref RapticoreReactiveRemediationPolicy
       Policies:
         - PolicyDocument:
             Statement:
