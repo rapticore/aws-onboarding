@@ -816,7 +816,7 @@
         }
       }
     },
-    "RapticoreReactiveRemediationPolicy": {
+    "RapticoreRemediationPolicy": {
       "Type": "AWS::IAM::ManagedPolicy",
       "Properties": {
         "PolicyDocument": {
@@ -824,12 +824,35 @@
             {
               "Action": [
                 "ec2:RevokeSecurityGroupIngress",
-                "s3:PutBucketPublicAccessBlock"
               ],
               "Resource": "*",
               "Effect": "Allow",
-              "Sid": "AllowReactiveRemediationChanges"
+              "Sid": "AllowReactiveRemediation"
             },
+            {
+              "Action": [
+                "ec2:ResetImageAttribute",
+                "ec2:ModifyImageAttribute",
+                "iam:ListAccessKeys",
+                "iam:UpdateAccessKey",
+                "iam:DeleteAccessKey",
+                "iam:GetAccountPasswordPolicy",
+                "iam:UpdateAccountPasswordPolicy",
+                "secretsmanager:UpdateSecret",
+                "lambda:GetPolicy",
+                "lambda:RemovePermission",
+                "s3:GetBucketPublicAccessBlock",
+                "s3:PutBucketPublicAccessBlock",
+                "s3:PutEncryptionConfiguration",
+                "s3:GetEncryptionConfiguration",
+                "kms:EnableKeyRotation",
+                "kms:ListAliases",
+                "kms:DescribeKey"
+              ],
+              "Resource": "*",
+              "Effect": "Allow",
+              "Sid": "AllowOneClickRemediation"
+            }
           ],
           "Version": "2012-10-17"
         }
@@ -889,7 +912,7 @@
             "Ref": "RapticoreExtendedViewOnlyPolicy4"
           },
           {
-            "Ref": "RapticoreReactiveRemediationPolicy"
+            "Ref": "RapticoreRemediationPolicy"
           }
         ],
         "Policies": [
