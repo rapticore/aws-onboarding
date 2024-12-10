@@ -655,16 +655,11 @@ Resources:
             Resource: '*'
             Sid: AllowMediaReadOnly
         Version: '2012-10-17'
-  RapticoreRemediationPolicy:
+  RapticoreOneClickRemediationPolicy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
       PolicyDocument:
         Statement:
-          - Action:
-              - ec2:RevokeSecurityGroupIngress
-            Resource: '*'
-            Effect: Allow
-            Sid: AllowReactiveRemediation
           - Action:
               - ec2:ResetImageAttribute
               - ec2:ModifyImageAttribute
@@ -686,6 +681,42 @@ Resources:
             Resource: '*'
             Effect: Allow
             Sid: AllowOneClickRemediation
+        Version: '2012-10-17'
+  RapticoreReactiveRemediationPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - ec2:RevokeSecurityGroupIngress
+            Resource: '*'
+            Effect: Allow
+            Sid: AllowSecurityGroupIngressRemediation
+          - Action:
+              - s3:PutBucketPublicAccessBlock
+            Resource: '*'
+            Effect: Allow
+            Sid: AllowS3PublicAccessRemediation
+          - Action:
+              - iam:DeleteLoginProfile
+            Resource: '*'
+            Effect: Allow
+            Sid: AllowIamUserLoginRemediation
+          - Action:
+              - sns:SetTopicAttributes
+            Resource: '*'
+            Effect: Allow
+            Sid: AllowSnsTopicPublicAccessRemediation
+          - Action:
+              - rds:ModifyDBSnapshotAttribute
+            Resource: '*'
+            Effect: Allow
+            Sid: AllowRdsSnapshotPublicAccessRemediation
+          - Action:
+              - ec2:ModifySnapshotAttribute
+            Resource: '*'
+            Effect: Allow
+            Sid: AllowEbsSnapshotPublicAccessRemediation
         Version: '2012-10-17'
   RapticoreIAMRole:
     Type: AWS::IAM::Role
@@ -713,7 +744,8 @@ Resources:
         - !Ref RapticoreExtendedViewOnlyPolicy2
         - !Ref RapticoreExtendedViewOnlyPolicy3
         - !Ref RapticoreExtendedViewOnlyPolicy4
-        - !Ref RapticoreRemediationPolicy
+        - !Ref RapticoreOneClickRemediationPolicy
+        - !Ref RapticoreReactiveRemediationPolicy
       Policies:
         - PolicyDocument:
             Statement:
