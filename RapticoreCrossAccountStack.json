@@ -908,6 +908,47 @@
         }
       }
     },
+    "RapticoreIamRightSizingPolicy": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "iam:DetachRolePolicy",
+                "iam:DetachUserPolicy",
+                "iam:DetachGroupPolicy",
+                "iam:AttachRolePolicy",
+                "iam:AttachUserPolicy",
+                "iam:AttachGroupPolicy"
+              ],
+              "Resource": [
+                "arn:aws:iam::*:role/*",
+                "arn:aws:iam::*:user/*",
+                "arn:aws:iam::*:group/*"
+              ],
+              "Condition": {
+                "StringLike": {
+                  "iam:PolicyARN": "*Rapticore*DenyPolicy"
+                }
+              },
+              "Sid": "AllowRightSizingIAMResources1"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "iam:DeletePolicy",
+                "iam:CreatePolicy"
+              ],
+              "Resource": "arn:aws:iam::*:policy/*Rapticore*DenyPolicy",
+              "Sid": "AllowRightSizingIAMResources2"
+            }
+          ],
+          "Version": "2012-10-17"
+        }
+      }
+    },
     "RapticoreIAMRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
@@ -966,6 +1007,9 @@
           },
           {
             "Ref": "RapticoreReactiveRemediationPolicy"
+          },
+          {
+            "Ref": "RapticoreIamRightSizingPolicy"
           }
         ],
         "Policies": [
