@@ -481,6 +481,7 @@ Resources:
               - backup:ListRecoveryPointsByResource
               - backup:GetBackupPlan
               - backup:ListTags
+              - backup:ListRestoreTestingPlans
               - backup:GetBackupSelection
               - backup:GetLegalHold
             Resource: '*'
