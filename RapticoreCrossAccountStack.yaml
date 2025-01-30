@@ -686,6 +686,54 @@ Resources:
               - kms:EnableKeyRotation
               - kms:ListAliases
               - kms:DescribeKey
+              - s3:PutBucketPolicy
+              - ec2:CreateTags
+              - ec2:CopySnapshot
+              - kms:Encrypt
+              - kms:GenerateDataKey
+              - ec2:CopyImage
+              - iam:DeletePolicy
+              - ec2:RevokeSecurityGroupIngress
+              - kms:ListKeys
+              - iam:UpdateLoginProfile
+              - iam:DeleteLoginProfile
+              - ec2:DescribeSecurityGroups
+              - ec2:AuthorizeSecurityGroupIngress
+              - cloudfront:UpdateDistribution
+              - ec2:DeleteSecurityGroup
+              - ec2:ReleaseAddress
+              - ec2:DisassociateAddress
+              - ec2:EnableEbsEncryptionByDefault
+              - ec2:DisableEbsEncryptionByDefault
+              - elasticmapreduce:PutBlockPublicAccessConfiguration
+              - ec2:ModifyInstanceMetadataDefaults
+              - ec2:DescribeInstances
+              - ec2:CreateVolume
+              - ec2:CreateSnapshot
+              - ec2:DetachVolume
+              - ec2:DeleteVolume
+              - ec2:DescribeVolumes
+              - glue:PutDataCatalogEncryptionSettings
+              - glue:PutDataCatalogEncryptionSettings
+              - elasticloadbalancing:DeleteLoadBalancer
+              - ssm:ModifyDocumentPermission
+              - ec2:ModifyInstanceMetadataOptions
+              - route53:ChangeResourceRecordSets
+              - rds:ModifyDBCluster
+              - rds:ModifyDBInstance
+              - dynamodb:UpdateTable
+              - dynamodb:UpdateContinuousBackups
+              - cloudtrail:CreateTrail
+              - cloudtrail:DescribeTrails
+              - cloudtrail:GetTrailStatus
+              - cloudtrail:StartLogging
+              - cloudtrail:UpdateTrail
+              - s3:CreateBucket
+              - s3:GetBucketPolicy
+              - acm:DeleteCertificate
+              - cloudfront:UpdateDistribution
+              - sqs:SetQueueAttributes
+              - apigateway:PATCH
             Resource: '*'
             Effect: Allow
             Sid: AllowOneClickRemediation
