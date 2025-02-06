@@ -774,6 +774,70 @@ Resources:
             Effect: Allow
             Sid: AllowEbsSnapshotPublicAccessRemediation
         Version: '2012-10-17'
+  RapticoreGuardRailsPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - ec2:EnableEbsEncryptionByDefault
+              - ec2:DisableEbsEncryptionByDefault
+            Resource: '*'
+            Effect: Allow
+            Sid: AllowEBSDefaultEncryption
+          - Action:
+              - elasticmapreduce:PutBlockPublicAccessConfiguration
+            Resource: '*'
+            Effect: Allow
+            Sid: AllowEMRPublicAccessBlock
+          - Action:
+              - ec2:ModifyInstanceMetadataDefaults
+            Resource: '*'
+            Effect: Allow
+            Sid: AllowEC2IMDSv2Enforcement
+          - Action:
+              - cloudtrail:CreateTrail
+              - cloudtrail:DescribeTrails
+              - cloudtrail:GetTrailStatus
+              - cloudtrail:StartLogging
+              - cloudtrail:UpdateTrail
+              - cloudtrail:CreateBucket
+              - cloudtrail:GetBucketPolicy
+              - cloudtrail:PutBucketPolicy
+            Resource: '*'
+            Effect: Allow
+            Sid: AllowCloudTrailLogging
+          - Action:
+              - glue:GetSecurityConfigurations
+              - glue:PutDataCatalogEncryptionSettings
+            Resource: '*'
+            Effect: Allow
+            Sid: AllowGlueCatalogEncryption
+          - Action:
+              - s3:GetBucketPublicAccessBlock
+              - s3:PutBucketPublicAccessBlock
+            Resource: '*'
+            Effect: Allow
+            Sid: AllowS3PublicBlock
+          - Action:
+              - iam:GetAccountPasswordPolicy
+              - iam:UpdateAccountPasswordPolicy
+            Resource: '*'
+            Effect: Allow
+            Sid: AllowCISPasswordPolicy
+          - Action:
+              - iam:ListMFADevices
+              - iam:DeleteLoginProfile
+            Resource: '*'
+            Effect: Allow
+            Sid: AllowIAMUsersMFA
+          - Action:
+              - iam:GetAccountPasswordPolicy
+              - iam:UpdateAccountPasswordPolicy
+            Resource: '*'
+            Effect: Allow
+            Sid: AllowPasswordPolicy
+        Version: '2012-10-17'
   RapticoreIamRightSizingPolicy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
@@ -830,6 +894,7 @@ Resources:
         - !Ref RapticoreExtendedViewOnlyPolicy4
         - !Ref RapticoreOneClickRemediationPolicy
         - !Ref RapticoreReactiveRemediationPolicy
+        - !Ref RapticoreGuardRailsPolicy
         - !Ref RapticoreIamRightSizingPolicy
       Policies:
         - PolicyDocument:
