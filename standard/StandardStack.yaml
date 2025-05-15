@@ -145,6 +145,13 @@ Resources:
                 Resource: arn:aws:sqs:us-west-2:343027753149:real-time-threat-alert-trigger
                 Sid: AllowRapticoreRealtimeAlert
           PolicyName: RapticoreRealTimeAlertPolicy
+        - PolicyDocument:
+            Statement:
+              - Action: 'cognito-identity:GetOpenIdTokenForDeveloperIdentity'
+                Effect: Allow
+                Resource: !Sub 'arn:aws:cognito-identity:${AWS::Region}:${AWS::AccountId}:identitypool/${AzureWorkloadIdentityPool}'
+                Sid: AllowCognitoOpenIdToken
+          PolicyName: CognitoOpenIdTokenPolicy
       RoleName: !Join [ "", [ 'RapticoreStandardEc2IAMRole', !Select [0, !Split [., !Ref Domain ]] ] ]
 
   EC2InstanceProfileForRapticore:
@@ -220,27 +227,6 @@ Resources:
           - !Select [ 0, !Split [ '.', !Ref Domain ] ]
       LoginValue: !Select [ 0, !Split [ '.', !Ref Domain ] ]
 
-
-  CognitoOIDCRoleForAzure:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              AWS: !Ref 'AWS::AccountId'
-            Action: 'sts:AssumeRole'
-      Description: 'Role to get OpenID Token from Cognito Identity Pool for Azure workload'
-      Policies:
-        - PolicyName: CognitoOpenIdTokenPolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action: 'cognito-identity:GetOpenIdTokenForDeveloperIdentity'
-                Resource: !Sub 'arn:aws:cognito-identity:${AWS::Region}:${AWS::AccountId}:identitypool/${AzureWorkloadIdentityPool}'
-
 Outputs:
   RapticoreStandardURL:
     Value: !Join [ "", [ "https://", !Ref Domain ] ]
@@ -262,7 +248,3 @@ Outputs:
       Fn::GetAtt:
         - GetOpenIdTokenCustomResource
         - IdentityId
-
-  CognitoOidcRoleArn:
-    Description: ARN of the role that can get OpenID tokens for Azure workload
-    Value: !GetAtt CognitoOIDCRoleForAzure.Arn
