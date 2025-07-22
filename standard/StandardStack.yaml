@@ -30,6 +30,34 @@ Parameters:
     Description: 'ARN of existing Lambda function to use for Custom Resource to create identity for azure tenant in identity pool'
     Type: String
 
+  TenantId:
+    Type: String
+    Description: Unique tenant identifier
+
+  CognitoGroupName:
+    Type: String
+    Description: Cognito group name for this tenant
+
+  CrsAccountId:
+    Type: String
+    Description: AWS Account ID where CRS runs
+    Default: "422753814403"
+
+  CognitoManagementRoleArn:
+    Type: String
+    Description: ARN of role in CRS account for Cognito management
+    Default: "arn:aws:iam::422753814403:role/cognito-management-for-standard-tenants"
+
+  SharedUserPoolId:
+    Type: String
+    Description: Shared Cognito User Pool ID
+    Default: "us-west-2_ugQoEHBWd"
+
+  SharedUserPoolClientId:
+    Type: String
+    Description: Shared Cognito User Pool Client ID
+    Default: "3c0adcuesr3fjrc1tri6g78uf"
+
 Resources:
   #####
   # Network resources
@@ -227,6 +255,181 @@ Resources:
           - !Select [ 0, !Split [ '.', !Ref Domain ] ]
       LoginValue: !Select [ 0, !Split [ '.', !Ref Domain ] ]
 
+  #####
+  # CRS Cross-Account Authentication Resources
+  #####
+  CrsServiceUserPassword:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub "CrsServiceUserPassword-${TenantId}"
+      GenerateSecretString:
+        SecretStringTemplate: !Sub '{"username": "crs-service-${TenantId}@rapticore.com"}'
+        GenerateStringKey: password
+        ExcludeCharacters: '"@/\'
+        PasswordLength: 32
+        RequireEachIncludedType: true
+
+  CrsUserManagementRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: CognitoUserManagement
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sts:AssumeRole
+                Resource: !Ref CognitoManagementRoleArn
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref CrsServiceUserPassword
+
+  CrsUserManagementFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "CrsUserManagement-${TenantId}"
+      Runtime: python3.11
+      Handler: index.handler
+      Role: !GetAtt CrsUserManagementRole.Arn
+      Timeout: 60
+      Code:
+        ZipFile: |
+          import boto3
+          import json
+          import cfnresponse
+          
+          def handler(event, context):
+              try:
+                  # Assume cross-account role first
+                  sts = boto3.client('sts')
+                  cognito_mgmt_role_arn = event['ResourceProperties']['CognitoManagementRoleArn']
+                  
+                  assumed_role = sts.assume_role(
+                      RoleArn=cognito_mgmt_role_arn,
+                      RoleSessionName='cognito-user-management'
+                  )
+                  
+                  # Create Cognito client with assumed role credentials
+                  cognito = boto3.client(
+                      'cognito-idp',
+                      region_name='us-west-2',
+                      aws_access_key_id=assumed_role['Credentials']['AccessKeyId'],
+                      aws_secret_access_key=assumed_role['Credentials']['SecretAccessKey'],
+                      aws_session_token=assumed_role['Credentials']['SessionToken']
+                  )
+                  
+                  secrets = boto3.client('secretsmanager')
+                  
+                  user_pool_id = event['ResourceProperties']['UserPoolId']
+                  username = event['ResourceProperties']['Username']
+                  group_name = event['ResourceProperties']['GroupName']
+                  password_secret_arn = event['ResourceProperties']['PasswordSecretArn']
+                  
+                  if event['RequestType'] == 'Create' or event['RequestType'] == 'Update':
+                      # Check if group exists, create if not
+                      try:
+                          cognito.get_group(GroupName=group_name, UserPoolId=user_pool_id)
+                          print(f"Group {group_name} already exists")
+                      except cognito.exceptions.ResourceNotFoundException:
+                          print(f"Creating group {group_name}")
+                          cognito.create_group(
+                              GroupName=group_name,
+                              UserPoolId=user_pool_id,
+                              Description=f"CRS tenant group for {group_name}"
+                          )
+                      
+                      # Check if user exists
+                      user_exists = False
+                      try:
+                          cognito.admin_get_user(UserPoolId=user_pool_id, Username=username)
+                          user_exists = True
+                          print(f"User {username} already exists")
+                      except cognito.exceptions.UserNotFoundException:
+                          print(f"User {username} does not exist, creating")
+                      
+                      if not user_exists:
+                          # Get password from secret
+                          secret = secrets.get_secret_value(SecretId=password_secret_arn)
+                          password_data = json.loads(secret['SecretString'])
+                          password = password_data['password']
+                          
+                          # Create user
+                          cognito.admin_create_user(
+                              UserPoolId=user_pool_id,
+                              Username=username,
+                              MessageAction='SUPPRESS',
+                              TemporaryPassword='TempPassword123!'
+                          )
+                          
+                          # Set permanent password
+                          cognito.admin_set_user_password(
+                              UserPoolId=user_pool_id,
+                              Username=username,
+                              Password=password,
+                              Permanent=True
+                          )
+                      
+                      # Always ensure user is in group
+                      try:
+                          cognito.admin_add_user_to_group(
+                              UserPoolId=user_pool_id,
+                              Username=username,
+                              GroupName=group_name
+                          )
+                      except cognito.exceptions.UserNotConfirmedException:
+                          pass  # User already in group
+                      
+                      cfnresponse.send(event, context, cfnresponse.SUCCESS, {'Username': username})
+                  
+                  elif event['RequestType'] == 'Delete':
+                      # Don't delete user - preserve it for reuse
+                      cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+                      
+              except Exception as e:
+                  print(f"Error: {str(e)}")
+                  cfnresponse.send(event, context, cfnresponse.FAILED, {'Error': str(e)})
+
+  CreateCrsServiceUser:
+    Type: Custom::CrsServiceUser
+    Properties:
+      ServiceToken: !GetAtt CrsUserManagementFunction.Arn
+      UserPoolId: !Ref SharedUserPoolId
+      Username: !Sub "crs-service-${TenantId}@rapticore.com"
+      GroupName: !Ref CognitoGroupName
+      PasswordSecretArn: !Ref CrsServiceUserPassword
+      CognitoManagementRoleArn: !Ref CognitoManagementRoleArn
+      Timestamp: "2025-08-17-19-11"
+
+  CrsCredentials:
+    Type: AWS::SecretsManager::Secret
+    DependsOn: CreateCrsServiceUser
+    Properties:
+      Name: !Sub "CrsCredentials-${TenantId}"
+      SecretString: !Sub |
+        {
+          "tenant_id": "${TenantId}",
+          "aws_region": "us-west-2",
+          "user_pool_id": "${SharedUserPoolId}",
+          "client_id": "${SharedUserPoolClientId}",
+          "service_username": "crs-service-${TenantId}@rapticore.com",
+          "service_password": "{{resolve:secretsmanager:${CrsServiceUserPassword}:SecretString:password}}",
+          "target_account_id": "${AWS::AccountId}",
+          "api_endpoint": "https://${Domain}/api/v1/ingest/sarif",
+          "cognito_group": "${CognitoGroupName}",
+          "cross_account_role_arn": "arn:aws:iam::${CrsAccountId}:role/crs-cognito-access-standard-tenancy"
+        }
+
 Outputs:
   RapticoreStandardURL:
     Value: !Join [ "", [ "https://", !Ref Domain ] ]
@@ -248,3 +451,15 @@ Outputs:
       Fn::GetAtt:
         - GetOpenIdTokenCustomResource
         - IdentityId
+
+  CrsServiceUsername:
+    Description: CRS Service Username created
+    Value: !Sub "crs-service-${TenantId}@rapticore.com"
+
+  CrsRoleArn:
+    Description: Cross-account role ARN for CRS authentication (in CRS account)
+    Value: !Ref CognitoManagementRoleArn
+
+  CrsCredentialsSecret:
+    Description: Secret containing CRS authentication details
+    Value: !Ref CrsCredentials
