@@ -94,28 +94,12 @@ Parameters:
     Default: "RapticoreEventBus"
     Description: "Name of the custom EventBridge bus"
 
-  TenantType:
-    Type: String
-    Default: "default"
-    AllowedValues: ["azure", "default"]
-    Description: "Type of tenant deployment (azure)"
-
   AzureTenantId:
     Type: String
     Default: ""
     Description: "Azure Tenant ID (required only for azure tenant type)"
     AllowedPattern: "^$|^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
     ConstraintDescription: "Must be a valid Azure Tenant ID (GUID format) or empty"
-
-Conditions:
-  IsAzureTenant: !Equals [!Ref TenantType, "azure"]
-
-Rules:
-  AzureTenantIdRequired:
-    RuleCondition: !Equals [!Ref TenantType, "azure"]
-    Assertions:
-      - Assert: !Not [!Equals [!Ref AzureTenantId, ""]]
-        AssertDescription: "Azure Tenant ID is required when TenantType is 'azure'"
 
 Resources:
   #####
@@ -245,6 +229,14 @@ Resources:
                 Resource: !Sub "arn:aws:cognito-identity:${AWS::Region}:${AWS::AccountId}:identitypool/${AzureWorkloadIdentityPool}"
                 Sid: AllowCognitoOpenIdToken
           PolicyName: CognitoOpenIdTokenPolicy
+        - PolicyDocument:
+            Statement:
+              - Effect": Allow
+                Action:
+                  - "ses:SendEmail"
+                  - "ses:SendRawEmail"
+                Resource": "*"
+          PolicyName: RapticoreSESSendEmailPolicy
       RoleName:
         !Join [
           "",
@@ -275,7 +267,6 @@ Resources:
   #####
   AzureOpenIDConnectProvider:
     Type: AWS::IAM::OIDCProvider
-    Condition: IsAzureTenant
     Properties:
       Url: !Sub "https://sts.windows.net/${AzureTenantId}/"
       ClientIdList:
@@ -285,7 +276,6 @@ Resources:
 
   AzureWebIdentityRole:
     Type: AWS::IAM::Role
-    Condition: IsAzureTenant
     Properties:
       RoleName: !Sub "AzureWebIdentityRoleForAzureRTTM-${TenantId}"
       AssumeRolePolicyDocument: !Sub
@@ -322,8 +312,6 @@ Resources:
       Tags:
         - Key: TenantId
           Value: !Ref TenantId
-        - Key: TenantType
-          Value: "azure"
 
   RealTimeThreatMonitoringRule:
     Type: AWS::Events::Rule
