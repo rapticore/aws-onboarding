@@ -86,8 +86,8 @@ Parameters:
 
   MonitoredAccountIds:
     Type: CommaDelimitedList
-    Description: "List of AWS Account IDs to monitor for security events"
-    Default: ""
+    Description: "List of AWS Account IDs to monitor for security events(Dummy value as default)"
+    Default: "422753814403"
 
   EventBusName:
     Type: String
