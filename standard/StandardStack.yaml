@@ -15,19 +15,40 @@ Parameters:
     Type: String
     Default: t3.large
     ConstraintDescription: must be a valid EC2 instance type.
-    AllowedValues: [t3.medium, t3.large, t3.2xlarge, c3.large, c3.xlarge, c3.2xlarge, c3.4xlarge, c4.large, c4.xlarge, c4.2xlarge, c4.4xlarge, c5.large, c5.xlarge, c5.2xlarge, c5.4xlarge, c5a.large, c5a.xlarge, c5a.2xlarge, c5a.4xlarge]
+    AllowedValues:
+      [
+        t3.medium,
+        t3.large,
+        t3.2xlarge,
+        c3.large,
+        c3.xlarge,
+        c3.2xlarge,
+        c3.4xlarge,
+        c4.large,
+        c4.xlarge,
+        c4.2xlarge,
+        c4.4xlarge,
+        c5.large,
+        c5.xlarge,
+        c5.2xlarge,
+        c5.4xlarge,
+        c5a.large,
+        c5a.xlarge,
+        c5a.2xlarge,
+        c5a.4xlarge,
+      ]
 
   Domain:
-    Description: 'The domain name of your Rapticore instance.'
+    Description: "The domain name of your Rapticore instance."
     Type: String
     ConstraintDescription: must be a valid domain name i.e., domain.ore.rapticore.cloud
 
   HostedZoneID:
-    Description: 'The ID of your Route 53 hosted zone. Domain name record will be created in this zone.'
-    Type: 'AWS::Route53::HostedZone::Id'
+    Description: "The ID of your Route 53 hosted zone. Domain name record will be created in this zone."
+    Type: "AWS::Route53::HostedZone::Id"
 
   AzureIdentityLambdaArn:
-    Description: 'ARN of existing Lambda function to use for Custom Resource to create identity for azure tenant in identity pool'
+    Description: "ARN of existing Lambda function to use for Custom Resource to create identity for azure tenant in identity pool"
     Type: String
 
   TenantId:
@@ -58,12 +79,34 @@ Parameters:
     Description: Shared Cognito User Pool Client ID
     Default: "3c0adcuesr3fjrc1tri6g78uf"
 
+  QueuesToDelete:
+    Type: CommaDelimitedList
+    Default: ""
+    Description: "Comma-separated list of SQS Queue ARNs to delete (leave empty if none)"
+
+  MonitoredAccountIds:
+    Type: CommaDelimitedList
+    Description: "List of AWS Account IDs to monitor for security events(Dummy value as default)"
+    Default: "422753814403"
+
+  EventBusName:
+    Type: String
+    Default: "RapticoreEventBus"
+    Description: "Name of the custom EventBridge bus"
+
+  AzureTenantId:
+    Type: String
+    Default: ""
+    Description: "Azure Tenant ID (required only for azure tenant type)"
+    AllowedPattern: "^$|^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    ConstraintDescription: "Must be a valid Azure Tenant ID (GUID format) or empty"
+
 Resources:
   #####
   # Network resources
   #####
   RapticoreSecurityGroup:
-    Type: 'AWS::EC2::SecurityGroup'
+    Type: "AWS::EC2::SecurityGroup"
     Properties:
       GroupDescription: Enable HTTP access
       VpcId: !Ref VpcId
@@ -87,19 +130,19 @@ Resources:
   NetworkLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
-      Name: !Join [ "", [ !Select [0, !Split [., !Ref Domain ]],'-elb' ] ]
+      Name: !Join ["", [!Select [0, !Split [., !Ref Domain]], "-elb"]]
       IpAddressType: ipv4
       Scheme: internet-facing
       Subnets: [!Ref SubnetId]
       Type: network
       Tags:
-          - Key: 'Name'
-            Value: !Join [ "", [!Ref Domain,'-loadbalancer' ] ]
+        - Key: "Name"
+          Value: !Join ["", [!Ref Domain, "-loadbalancer"]]
 
   NetworkLoadBalancerTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
-      Name: !Join [ "", [ !Select [0, !Split [., !Ref Domain ]],'-target-group' ] ]
+      Name: !Join ["", [!Select [0, !Split [., !Ref Domain]], "-target-group"]]
       Port: 443
       Protocol: TLS
       VpcId: !Ref VpcId
@@ -109,7 +152,7 @@ Resources:
 
   # Set up TLS Cert
   Cert:
-    Type: 'AWS::CertificateManager::Certificate'
+    Type: "AWS::CertificateManager::Certificate"
     Properties:
       DomainName: !Ref Domain
       ValidationMethod: DNS
@@ -141,7 +184,7 @@ Resources:
                 - "ec2.amazonaws.com"
             Action:
               - "sts:AssumeRole"
-      Description: !Sub 'Rapticore Standard EC2 IAM Role Deployment'
+      Description: !Sub "Rapticore Standard EC2 IAM Role Deployment"
       Policies:
         - PolicyDocument:
             Statement:
@@ -150,11 +193,11 @@ Resources:
                   - ec2:DescribeRegions
                   - iam:GetRole*
                 Effect: Allow
-                Resource: '*'
+                Resource: "*"
                 Sid: AllowIamEc2ReadyOnly
               - Action: sts:AssumeRole
                 Effect: Allow
-                Resource: 'arn:aws:iam::*:role/rapticore*'
+                Resource: "arn:aws:iam::*:role/rapticore*"
                 Sid: EC2AssumeRole
           PolicyName: RapticoreEc2Policy
         - PolicyDocument:
@@ -170,17 +213,35 @@ Resources:
                   - sqs:ReceiveMessage
                   - sqs:SendMessage
                 Effect: Allow
-                Resource: arn:aws:sqs:us-west-2:343027753149:real-time-threat-alert-trigger
+                Resource:
+                  - !GetAtt RealTimeThreatAlertTriggerQueue.Arn
+                  - !GetAtt RealTimeThreatAlertTriggerAzureQueue.Arn
+                  - !GetAtt RapticoreVulnerabilityQueue.Arn
+                  - !GetAtt RapticoreContainerVulnerabilityQueue.Arn
+                  - !GetAtt RapticoreResourceVulnerabilitySummaryQueue.Arn
+                  - !GetAtt RapticoreReactiveRemediationQueue.Arn
                 Sid: AllowRapticoreRealtimeAlert
           PolicyName: RapticoreRealTimeAlertPolicy
         - PolicyDocument:
             Statement:
-              - Action: 'cognito-identity:GetOpenIdTokenForDeveloperIdentity'
+              - Action: "cognito-identity:GetOpenIdTokenForDeveloperIdentity"
                 Effect: Allow
-                Resource: !Sub 'arn:aws:cognito-identity:${AWS::Region}:${AWS::AccountId}:identitypool/${AzureWorkloadIdentityPool}'
+                Resource: !Sub "arn:aws:cognito-identity:${AWS::Region}:${AWS::AccountId}:identitypool/${AzureWorkloadIdentityPool}"
                 Sid: AllowCognitoOpenIdToken
           PolicyName: CognitoOpenIdTokenPolicy
-      RoleName: !Join [ "", [ 'RapticoreStandardEc2IAMRole', !Select [0, !Split [., !Ref Domain ]] ] ]
+        - PolicyDocument:
+            Statement:
+              - Effect": Allow
+                Action:
+                  - "ses:SendEmail"
+                  - "ses:SendRawEmail"
+                Resource": "*"
+          PolicyName: RapticoreSESSendEmailPolicy
+      RoleName:
+        !Join [
+          "",
+          ["RapticoreStandardEc2IAMRole", !Select [0, !Split [., !Ref Domain]]],
+        ]
 
   EC2InstanceProfileForRapticore:
     Type: AWS::IAM::InstanceProfile
@@ -199,7 +260,180 @@ Resources:
       SubnetId: !Ref SubnetId
       Tags:
         - Key: Name
-          Value: !Join [ "", [!Ref Domain,'Rapticore-standard' ] ]
+          Value: !Join ["", [!Ref Domain, "Rapticore-standard"]]
+
+  #####
+  # Azure Web Identity Resources (Conditional)
+  #####
+  AzureOpenIDConnectProvider:
+    Type: AWS::IAM::OIDCProvider
+    Properties:
+      Url: !Sub "https://sts.windows.net/${AzureTenantId}/"
+      ClientIdList:
+        - !Sub "api://${AzureTenantId}"
+      ThumbprintList:
+        - "626d44e704d1ceabe3bf0d53397464ac8080142c"
+
+  AzureWebIdentityRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "AzureWebIdentityRoleForAzureRTTM-${TenantId}"
+      AssumeRolePolicyDocument: !Sub
+        - |
+          {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "Federated": "${OIDCProvider}"
+                },
+                "Action": "sts:AssumeRoleWithWebIdentity",
+                "Condition": {
+                  "StringEquals": {
+                    "sts.windows.net/${TenantId}/:aud": "api://${TenantId}"
+                  }
+                }
+              }
+            ]
+          }
+        - OIDCProvider: !Ref AzureOpenIDConnectProvider
+          TenantId: !Ref AzureTenantId
+
+      Policies:
+        - PolicyName: AzureRTTMSQSPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                Resource: !GetAtt RealTimeThreatAlertTriggerAzureQueue.Arn
+      Tags:
+        - Key: TenantId
+          Value: !Ref TenantId
+
+  RealTimeThreatMonitoringRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "Rapticore${TenantId}ReceiverRule"
+      Description: !Sub "Receiver rule for ${TenantId} tenancy"
+      EventBusName: !Ref EventBusName
+      EventPattern:
+        source:
+          - "aws.ec2"
+          - "aws.iam"
+          - "aws.signin"
+          - "aws.s3"
+          - "aws.sqs"
+          - "aws.sns"
+          - "aws.rds"
+          - "aws.sso"
+        account: !Ref MonitoredAccountIds
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt RealTimeThreatAlertTriggerQueue.Arn
+          Id: "RealTimeThreatSQSTarget"
+
+  #####
+  # SQS Queue resources
+  #####
+
+  # Rapticore Vulnerability Queue
+  RapticoreVulnerabilityDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "rapticore-vulnerability-${TenantId}-dlq"
+      MessageRetentionPeriod: 1209600 # 14 days
+
+  RapticoreVulnerabilityQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "rapticore-vulnerability-${TenantId}"
+      MessageRetentionPeriod: 43200 # 12 hours
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt RapticoreVulnerabilityDLQ.Arn
+        maxReceiveCount: 3
+
+  # Rapticore Container Vulnerability Queue
+  RapticoreContainerVulnerabilityDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "rapticore-container-vulnerability-${TenantId}-dlq"
+      MessageRetentionPeriod: 1209600 # 14 days
+
+  RapticoreContainerVulnerabilityQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "rapticore-container-vulnerability-${TenantId}"
+      MessageRetentionPeriod: 43200 # 12 hours
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt RapticoreContainerVulnerabilityDLQ.Arn
+        maxReceiveCount: 3
+
+  # Rapticore Resource Vulnerability Summary Queue
+  RapticoreResourceVulnerabilitySummaryDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "rapticore-resource-vulnerability-summary-${TenantId}-dlq"
+      MessageRetentionPeriod: 1209600 # 14 days
+
+  RapticoreResourceVulnerabilitySummaryQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "rapticore-resource-vulnerability-summary-${TenantId}"
+      MessageRetentionPeriod: 43200 # 12 hours
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt RapticoreResourceVulnerabilitySummaryDLQ.Arn
+        maxReceiveCount: 3
+
+  # Rapticore Reactive Remediation Queue
+  RapticoreReactiveRemediationDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "rapticore-reactive-remediation-${TenantId}-dlq"
+      MessageRetentionPeriod: 1209600 # 14 days
+
+  RapticoreReactiveRemediationQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "rapticore-reactive-remediation-${TenantId}"
+      MessageRetentionPeriod: 43200 # 12 hours
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt RapticoreReactiveRemediationDLQ.Arn
+        maxReceiveCount: 3
+
+  # Real-time Threat Alert Trigger Queue (tenant-specific)
+  RealTimeThreatAlertTriggerDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "real-time-threat-alert-trigger-${TenantId}-dlq"
+      MessageRetentionPeriod: 1209600 # 14 days
+
+  RealTimeThreatAlertTriggerQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "real-time-threat-alert-trigger-${TenantId}"
+      MessageRetentionPeriod: 43200 # 12 hours
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt RealTimeThreatAlertTriggerDLQ.Arn
+        maxReceiveCount: 3
+
+  # Real-time Threat Alert Trigger Azure Queue
+  RealTimeThreatAlertTriggerAzureDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: "real-time-threat-alert-trigger-azure-dlq"
+      MessageRetentionPeriod: 1209600 # 14 days
+
+  RealTimeThreatAlertTriggerAzureQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: "real-time-threat-alert-trigger-azure"
+      MessageRetentionPeriod: 43200 # 12 hours
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt RealTimeThreatAlertTriggerAzureDLQ.Arn
+        maxReceiveCount: 3
 
   # Set up A Record via Route 53
   Route53Record:
@@ -211,7 +445,7 @@ Resources:
         - Name: !Ref Domain
           Type: A
           AliasTarget:
-            HostedZoneId: !GetAtt 'NetworkLoadBalancer.CanonicalHostedZoneID'
+            HostedZoneId: !GetAtt "NetworkLoadBalancer.CanonicalHostedZoneID"
             DNSName: !GetAtt NetworkLoadBalancer.DNSName
 
   #####
@@ -221,22 +455,22 @@ Resources:
     Type: AWS::Cognito::IdentityPool
     Properties:
       IdentityPoolName: !Join
-        - ''
-        - - 'azure_workload_identity_pool_'
-          - !Select [ 0, !Split [ '.', !Ref Domain ] ]
+        - ""
+        - - "azure_workload_identity_pool_"
+          - !Select [0, !Split [".", !Ref Domain]]
       AllowUnauthenticatedIdentities: false
       DeveloperProviderName: !Join
-        - ''
-        - - 'azure_workload_identity_'
-          - !Select [ 0, !Split [ '.', !Ref Domain ] ]
+        - ""
+        - - "azure_workload_identity_"
+          - !Select [0, !Split [".", !Ref Domain]]
 
   LambdaPermission:
     Type: AWS::Lambda::Permission
     Properties:
-      Action: 'lambda:InvokeFunction'
+      Action: "lambda:InvokeFunction"
       FunctionName: !Ref AzureIdentityLambdaArn
-      Principal: 'cloudformation.amazonaws.com'
-      SourceAccount: !Ref 'AWS::AccountId'
+      Principal: "cloudformation.amazonaws.com"
+      SourceAccount: !Ref "AWS::AccountId"
 
   # Custom Resource that uses the existing Lambda function
   GetOpenIdTokenCustomResource:
@@ -250,10 +484,10 @@ Resources:
       # Login Key should be same as developer provider name
       #####
       LoginKey: !Join
-        - ''
-        - - 'azure_workload_identity_'
-          - !Select [ 0, !Split [ '.', !Ref Domain ] ]
-      LoginValue: !Select [ 0, !Split [ '.', !Ref Domain ] ]
+        - ""
+        - - "azure_workload_identity_"
+          - !Select [0, !Split [".", !Ref Domain]]
+      LoginValue: !Select [0, !Split [".", !Ref Domain]]
 
   #####
   # CRS Cross-Account Authentication Resources
@@ -273,7 +507,7 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Principal:
@@ -284,7 +518,7 @@ Resources:
       Policies:
         - PolicyName: CognitoUserManagement
           PolicyDocument:
-            Version: '2012-10-17'
+            Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
@@ -308,7 +542,7 @@ Resources:
           import boto3
           import json
           import cfnresponse
-          
+
           def handler(event, context):
               try:
                   # Assume cross-account role first
@@ -429,17 +663,152 @@ Resources:
           "cognito_group": "${CognitoGroupName}",
           "cross_account_role_arn": "arn:aws:iam::${CrsAccountId}:role/crs-cognito-access-standard-tenancy"
         }
+  #####
+  # Queue Deletion Custom Resource
+  #####
+  QueueDeletionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: SQSDeletePolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:DeleteQueue
+                  - sqs:GetQueueAttributes
+                  - sqs:ListQueues
+                Resource: "*"
+
+  QueueDeletionFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "QueueDeletion-${TenantId}"
+      Runtime: python3.11
+      Handler: index.handler
+      Role: !GetAtt QueueDeletionRole.Arn
+      Timeout: 300
+      Code:
+        ZipFile: |
+          import boto3
+          import json
+          import cfnresponse
+          import logging
+
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+
+          def handler(event, context):
+              try:
+                  logger.info(f"Event: {json.dumps(event)}")
+                  
+                  sqs = boto3.client('sqs')
+                  queue_arns = event['ResourceProperties'].get('QueueArns', [])
+                  
+                  # Handle empty list or empty string
+                  if not queue_arns or (len(queue_arns) == 1 and queue_arns[0] == ''):
+                      logger.info("No queues to delete")
+                      cfnresponse.send(event, context, cfnresponse.SUCCESS, {'Message': 'No queues specified'})
+                      return
+                  
+                  deleted_queues = []
+                  failed_queues = []
+                  
+                  if event['RequestType'] in ['Create', 'Update']:
+                      for queue_arn in queue_arns:
+                          try:
+                              # Extract queue URL from ARN
+                              # ARN format: arn:aws:sqs:region:account:queue-name
+                              arn_parts = queue_arn.split(':')
+                              if len(arn_parts) >= 6:
+                                  region = arn_parts[3]
+                                  account = arn_parts[4]
+                                  queue_name = arn_parts[5]
+                                  queue_url = f"https://sqs.{region}.amazonaws.com/{account}/{queue_name}"
+                              else:
+                                  logger.error(f"Invalid ARN format: {queue_arn}")
+                                  failed_queues.append(queue_arn)
+                                  continue
+                              
+                              logger.info(f"Attempting to delete queue: {queue_url}")
+                              
+                              # Check if queue exists first
+                              try:
+                                  sqs.get_queue_attributes(QueueUrl=queue_url, AttributeNames=['QueueArn'])
+                                  logger.info(f"Queue exists, proceeding with deletion: {queue_url}")
+                              except sqs.exceptions.QueueDoesNotExist:
+                                  logger.info(f"Queue does not exist, skipping: {queue_url}")
+                                  deleted_queues.append(queue_arn)
+                                  continue
+                              
+                              # Delete the queue
+                              sqs.delete_queue(QueueUrl=queue_url)
+                              deleted_queues.append(queue_arn)
+                              logger.info(f"Successfully deleted queue: {queue_url}")
+                              
+                          except Exception as e:
+                              logger.error(f"Failed to delete queue {queue_arn}: {str(e)}")
+                              failed_queues.append(queue_arn)
+                  
+                  elif event['RequestType'] == 'Delete':
+                      logger.info("Stack deletion - no queue cleanup needed")
+                  
+                  # Prepare response
+                  response_data = {
+                      'DeletedQueues': deleted_queues,
+                      'FailedQueues': failed_queues,
+                      'TotalProcessed': len(queue_arns) if queue_arns and queue_arns[0] != '' else 0,
+                      'SuccessCount': len(deleted_queues),
+                      'FailureCount': len(failed_queues)
+                  }
+                  
+                  # Determine success/failure
+                  if failed_queues:
+                      logger.warning(f"Some queues failed to delete: {failed_queues}")
+                      # Still report success if at least some queues were processed
+                      cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data)
+                  else:
+                      logger.info("All specified queues processed successfully")
+                      cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data)
+                      
+              except Exception as e:
+                  logger.error(f"Unexpected error: {str(e)}")
+                  cfnresponse.send(event, context, cfnresponse.FAILED, {'Error': str(e)})
+
+  DeleteSpecifiedQueues:
+    Type: Custom::QueueDeletion
+    Properties:
+      ServiceToken: !GetAtt QueueDeletionFunction.Arn
+      QueueArns: !Ref QueuesToDelete
+      Timestamp: "2025-08-13-20-30" # Change this to force re-execution
 
 Outputs:
   RapticoreStandardURL:
-    Value: !Join [ "", [ "https://", !Ref Domain ] ]
+    Value: !Join ["", ["https://", !Ref Domain]]
     Description: Rapticore Standard URL
 
   RapticoreStandardInstanceId:
     Description: Instance ID of the launched EC2 instance
     Value: !Ref EC2Instance
     Export:
-      Name: !Join [ "", [ "RapticoreStandardInstanceId-", !Select [0, !Split [., !Ref Domain ]] ] ]
+      Name:
+        !Join [
+          "",
+          [
+            "RapticoreStandardInstanceId-",
+            !Select [0, !Split [., !Ref Domain]],
+          ],
+        ]
 
   AzureWorkloadIdentityPoolId:
     Description: The ID of the Cognito Identity Pool for Azure workload identity
@@ -463,3 +832,34 @@ Outputs:
   CrsCredentialsSecret:
     Description: Secret containing CRS authentication details
     Value: !Ref CrsCredentials
+
+  VulnerabilityQueueURL:
+    Description: URL of the vulnerability queue
+    Value: !GetAtt RapticoreVulnerabilityQueue.Url
+
+  ContainerVulnerabilityQueueURL:
+    Description: URL of the container vulnerability queue
+    Value: !GetAtt RapticoreContainerVulnerabilityQueue.Url
+
+  ResourceVulnerabilitySummaryQueueURL:
+    Description: URL of the resource vulnerability summary queue
+    Value: !GetAtt RapticoreResourceVulnerabilitySummaryQueue.Url
+
+  ReactiveRemediationQueueURL:
+    Description: URL of the reactive remediation queue
+    Value: !GetAtt RapticoreReactiveRemediationQueue.Url
+
+  RealTimeThreatAlertTriggerQueueURL:
+    Description: URL of the real-time threat alert trigger queue
+    Value: !GetAtt RealTimeThreatAlertTriggerQueue.Url
+
+  RealTimeThreatAlertTriggerAzureQueueURL:
+    Description: URL of the real-time threat alert trigger azure queue
+    Value: !GetAtt RealTimeThreatAlertTriggerAzureQueue.Url
+
+  QueueDeletionResults:
+    Description: Results of queue deletion operation
+    Value: !Sub |
+      Deleted: ${DeleteSpecifiedQueues.SuccessCount} queues
+      Failed: ${DeleteSpecifiedQueues.FailureCount} queues
+      Total Processed: ${DeleteSpecifiedQueues.TotalProcessed} queues
