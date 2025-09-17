@@ -101,6 +101,12 @@ Parameters:
     AllowedPattern: "^$|^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
     ConstraintDescription: "Must be a valid Azure Tenant ID (GUID format) or empty"
 
+  AMIId:
+    Description: "AMI ID for EC2 instance"
+    Type: "AWS::EC2::Image::Id"
+    Default: "ami-09ca9451840476dc8"
+    ConstraintDescription: "Must be a valid AMI ID (default from us-west-2)"
+
 Resources:
   #####
   # Network resources
@@ -220,8 +226,25 @@ Resources:
                   - !GetAtt RapticoreContainerVulnerabilityQueue.Arn
                   - !GetAtt RapticoreResourceVulnerabilitySummaryQueue.Arn
                   - !GetAtt RapticoreReactiveRemediationQueue.Arn
+                  - !GetAtt VcsTriggerContentManagerQueue.Arn
+                  - !GetAtt VcsTriggerAppSecQueue.Arn
+                  - !GetAtt VcsTriggerPostScanQueue.Arn
+                  - !GetAtt VcsTriggerVulnerabilityIngestionQueue.Arn
                 Sid: AllowRapticoreRealtimeAlert
           PolicyName: RapticoreRealTimeAlertPolicy
+        - PolicyDocument:
+            Statement:
+              - Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                  - s3:ListBucket
+                Effect: Allow
+                Resource:
+                  - !GetAtt VcsContentBucket.Arn
+                  - !Sub "${VcsContentBucket.Arn}/*"
+                Sid: AllowVcsS3Access
+          PolicyName: RapticoreVcsS3Policy
         - PolicyDocument:
             Statement:
               - Action: "cognito-identity:GetOpenIdTokenForDeveloperIdentity"
@@ -231,11 +254,11 @@ Resources:
           PolicyName: CognitoOpenIdTokenPolicy
         - PolicyDocument:
             Statement:
-              - Effect": Allow
+              - Effect: Allow
                 Action:
                   - "ses:SendEmail"
                   - "ses:SendRawEmail"
-                Resource": "*"
+                Resource: "*"
           PolicyName: RapticoreSESSendEmailPolicy
       RoleName:
         !Join [
@@ -253,7 +276,7 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       IamInstanceProfile: !Ref EC2InstanceProfileForRapticore
-      ImageId: ami-09ca9451840476dc8
+      ImageId: !Ref AMIId
       InstanceType: !Ref EC2InstanceType
       SecurityGroupIds:
         - !Ref RapticoreSecurityGroup
@@ -334,6 +357,24 @@ Resources:
       Targets:
         - Arn: !GetAtt RealTimeThreatAlertTriggerQueue.Arn
           Id: "RealTimeThreatSQSTarget"
+
+  #####
+  # S3 Bucket resources
+  #####
+
+  # VCS S3 Bucket
+  VcsContentBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "vcs-content-${TenantId}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: TenantId
+          Value: !Ref TenantId
 
   #####
   # SQS Queue resources
@@ -433,6 +474,70 @@ Resources:
       MessageRetentionPeriod: 43200 # 12 hours
       RedrivePolicy:
         deadLetterTargetArn: !GetAtt RealTimeThreatAlertTriggerAzureDLQ.Arn
+        maxReceiveCount: 3
+
+  # VCS Trigger Content Manager Queue
+  VcsTriggerContentManagerDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "vcs-trigger-content-manager-${TenantId}-dlq"
+      MessageRetentionPeriod: 1209600 # 14 days
+
+  VcsTriggerContentManagerQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "vcs-trigger-content-manager-${TenantId}"
+      MessageRetentionPeriod: 43200 # 12 hours
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt VcsTriggerContentManagerDLQ.Arn
+        maxReceiveCount: 3
+
+  # VCS Trigger AppSec Queue
+  VcsTriggerAppSecDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "vcs-trigger-appsec-${TenantId}-dlq"
+      MessageRetentionPeriod: 1209600 # 14 days
+
+  VcsTriggerAppSecQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "vcs-trigger-appsec-${TenantId}"
+      MessageRetentionPeriod: 43200 # 12 hours
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt VcsTriggerAppSecDLQ.Arn
+        maxReceiveCount: 3
+
+  # VCS Trigger Post Scan Queue
+  VcsTriggerPostScanDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "vcs-trigger-post-scan-${TenantId}-dlq"
+      MessageRetentionPeriod: 1209600 # 14 days
+
+  VcsTriggerPostScanQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "vcs-trigger-post-scan-${TenantId}"
+      MessageRetentionPeriod: 43200 # 12 hours
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt VcsTriggerPostScanDLQ.Arn
+        maxReceiveCount: 3
+
+  # VCS Trigger Vulnerability Ingestion Queue
+  VcsTriggerVulnerabilityIngestionDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "vcs-trigger-vulnerability-ingestion-${TenantId}-dlq"
+      MessageRetentionPeriod: 1209600 # 14 days
+
+  VcsTriggerVulnerabilityIngestionQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "vcs-trigger-vulnerability-ingestion-${TenantId}"
+      MessageRetentionPeriod: 43200 # 12 hours
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt VcsTriggerVulnerabilityIngestionDLQ.Arn
         maxReceiveCount: 3
 
   # Set up A Record via Route 53
@@ -718,7 +823,14 @@ Resources:
                   # Handle empty list or empty string
                   if not queue_arns or (len(queue_arns) == 1 and queue_arns[0] == ''):
                       logger.info("No queues to delete")
-                      cfnresponse.send(event, context, cfnresponse.SUCCESS, {'Message': 'No queues specified'})
+                      cfnresponse.send(event, context, cfnresponse.SUCCESS, {
+                          'Message': 'No queues specified',
+                          'DeletedQueues': [],
+                          'FailedQueues': [],
+                          'TotalProcessed': 0,
+                          'SuccessCount': 0,
+                          'FailureCount': 0
+                      })
                       return
                   
                   deleted_queues = []
@@ -835,27 +947,47 @@ Outputs:
 
   VulnerabilityQueueURL:
     Description: URL of the vulnerability queue
-    Value: !GetAtt RapticoreVulnerabilityQueue.Url
+    Value: !GetAtt RapticoreVulnerabilityQueue.QueueUrl
 
   ContainerVulnerabilityQueueURL:
     Description: URL of the container vulnerability queue
-    Value: !GetAtt RapticoreContainerVulnerabilityQueue.Url
+    Value: !GetAtt RapticoreContainerVulnerabilityQueue.QueueUrl
 
   ResourceVulnerabilitySummaryQueueURL:
     Description: URL of the resource vulnerability summary queue
-    Value: !GetAtt RapticoreResourceVulnerabilitySummaryQueue.Url
+    Value: !GetAtt RapticoreResourceVulnerabilitySummaryQueue.QueueUrl
 
   ReactiveRemediationQueueURL:
     Description: URL of the reactive remediation queue
-    Value: !GetAtt RapticoreReactiveRemediationQueue.Url
+    Value: !GetAtt RapticoreReactiveRemediationQueue.QueueUrl
 
   RealTimeThreatAlertTriggerQueueURL:
     Description: URL of the real-time threat alert trigger queue
-    Value: !GetAtt RealTimeThreatAlertTriggerQueue.Url
+    Value: !GetAtt RealTimeThreatAlertTriggerQueue.QueueUrl
 
   RealTimeThreatAlertTriggerAzureQueueURL:
     Description: URL of the real-time threat alert trigger azure queue
-    Value: !GetAtt RealTimeThreatAlertTriggerAzureQueue.Url
+    Value: !GetAtt RealTimeThreatAlertTriggerAzureQueue.QueueUrl
+
+  VcsContentBucketName:
+    Description: Name of the VCS content S3 bucket
+    Value: !Ref VcsContentBucket
+
+  VcsTriggerContentManagerQueueURL:
+    Description: URL of the VCS trigger content manager queue
+    Value: !GetAtt VcsTriggerContentManagerQueue.QueueUrl
+
+  VcsTriggerAppSecQueueURL:
+    Description: URL of the VCS trigger appsec queue
+    Value: !GetAtt VcsTriggerAppSecQueue.QueueUrl
+
+  VcsTriggerPostScanQueueURL:
+    Description: URL of the VCS trigger post scan queue
+    Value: !GetAtt VcsTriggerPostScanQueue.QueueUrl
+
+  VcsTriggerVulnerabilityIngestionQueueURL:
+    Description: URL of the VCS trigger vulnerability ingestion queue
+    Value: !GetAtt VcsTriggerVulnerabilityIngestionQueue.QueueUrl
 
   QueueDeletionResults:
     Description: Results of queue deletion operation
