@@ -1,0 +1,152 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: EKS Node Group stack for Rapticore tenant deployment
+
+Parameters:
+  ClusterName:
+    Type: String
+    Default: rapticore-eks
+    Description: Name of the EKS cluster
+
+  NodeGroupName:
+    Type: String
+    Default: rapticore-nodes
+    Description: Name of the node group
+
+  NodeRoleArn:
+    Type: String
+    Description: ARN of the IAM role for EKS nodes
+
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: List of subnet IDs for the node group
+
+  InstanceTypes:
+    Type: CommaDelimitedList
+    Default: "t4g.xlarge,t4g.large,m7g.xlarge"
+    Description: List of EC2 instance types for the node group
+
+  DiskSize:
+    Type: Number
+    Default: 50
+    Description: Disk size in GB for node root volume
+
+  DesiredSize:
+    Type: Number
+    Default: 2
+    Description: Desired number of nodes
+
+  MinSize:
+    Type: Number
+    Default: 1
+    Description: Minimum number of nodes
+
+  MaxSize:
+    Type: Number
+    Default: 10
+    Description: Maximum number of nodes
+
+  CapacityType:
+    Type: String
+    Default: ON_DEMAND
+    AllowedValues:
+      - ON_DEMAND
+      - SPOT
+    Description: Capacity type for the node group
+
+  AmiType:
+    Type: String
+    Default: AL2023_ARM_64_STANDARD
+    AllowedValues:
+      - AL2023_x86_64_STANDARD
+      - AL2023_ARM_64_STANDARD
+      - BOTTLEROCKET_x86_64
+      - BOTTLEROCKET_ARM_64
+    Description: AMI type for the nodes
+
+  SpotInstanceTypes:
+    Type: CommaDelimitedList
+    Default: "t4g.large,t4g.xlarge,t4g.2xlarge,m7g.large,m7g.xlarge,m7g.2xlarge"
+    Description: List of EC2 instance types for the spot node group
+
+Resources:
+  #####
+  # EKS Node Group
+  #####
+  EksNodeGroup:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !Ref ClusterName
+      NodeRole: !Ref NodeRoleArn
+      Subnets: !Ref SubnetIds
+      ScalingConfig:
+        DesiredSize: !Ref DesiredSize
+        MinSize: !Ref MinSize
+        MaxSize: !Ref MaxSize
+      InstanceTypes: !Ref InstanceTypes
+      DiskSize: !Ref DiskSize
+      CapacityType: !Ref CapacityType
+      AmiType: !Ref AmiType
+      Labels:
+        role: worker
+        nodegroup: !Ref NodeGroupName
+      Tags:
+        Name: !Sub "${ClusterName}-${NodeGroupName}"
+        Environment: production
+      UpdateConfig:
+        MaxUnavailable: 1
+
+  #####
+  # Additional Node Group for Spot Instances (Cost Optimization)
+  #####
+  EksSpotNodeGroup:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !Ref ClusterName
+      NodeRole: !Ref NodeRoleArn
+      Subnets: !Ref SubnetIds
+      ScalingConfig:
+        DesiredSize: 0
+        MinSize: 0
+        MaxSize: !Ref MaxSize
+      InstanceTypes: !Ref SpotInstanceTypes
+      DiskSize: !Ref DiskSize
+      CapacityType: SPOT
+      AmiType: !Ref AmiType
+      Labels:
+        role: worker
+        nodegroup: !Sub "${NodeGroupName}-spot"
+        capacity-type: spot
+      Taints:
+        - Key: spot
+          Value: "true"
+          Effect: PREFER_NO_SCHEDULE
+      Tags:
+        Name: !Sub "${ClusterName}-${NodeGroupName}-spot"
+        Environment: production
+      UpdateConfig:
+        MaxUnavailable: 1
+
+Outputs:
+  NodeGroupName:
+    Description: Name of the primary node group
+    Value: !Ref EksNodeGroup
+    Export:
+      Name: !Sub "${AWS::StackName}-NodeGroupName"
+
+  NodeGroupArn:
+    Description: ARN of the primary node group
+    Value: !GetAtt EksNodeGroup.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-NodeGroupArn"
+
+  SpotNodeGroupName:
+    Description: Name of the spot node group
+    Value: !Ref EksSpotNodeGroup
+    Export:
+      Name: !Sub "${AWS::StackName}-SpotNodeGroupName"
+
+  SpotNodeGroupArn:
+    Description: ARN of the spot node group
+    Value: !GetAtt EksSpotNodeGroup.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-SpotNodeGroupArn"
