@@ -156,6 +156,23 @@ Resources:
         - Arn: !GetAtt RealTimeThreatAlertTriggerQueue.Arn
           Id: "RealTimeThreatSQSTarget"
 
+  RealTimeThreatAlertQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref RealTimeThreatAlertTriggerQueue
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt RealTimeThreatAlertTriggerQueue.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !GetAtt RealTimeThreatMonitoringRule.Arn
+
   #####
   # S3 Bucket resources
   #####

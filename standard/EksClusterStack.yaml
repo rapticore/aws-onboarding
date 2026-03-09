@@ -334,6 +334,9 @@ Resources:
                   - sqs:GetQueueAttributes
                   - sqs:GetQueueUrl
                   - sqs:ChangeMessageVisibility
+                  - sqs:ListQueues
+                  - sqs:ListDeadLetterSourceQueues
+                  - sqs:ListQueueTags
                 Resource:
                   - !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:rapticore-*"
                   - !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:real-time-threat-alert-trigger-*"
@@ -350,13 +353,17 @@ Resources:
                   - "arn:aws:s3:::vcs-content-*/*"
                   - "arn:aws:s3:::vcs-centralized-data"
                   - "arn:aws:s3:::vcs-centralized-data/*"
+                  - "arn:aws:s3:::ore.c7n.remediation.policies"
+                  - "arn:aws:s3:::ore.c7n.remediation.policies/*"
               # Bedrock Access
               - Effect: Allow
                 Action:
                   - bedrock:InvokeModel
                 Resource:
-                  - !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/us.amazon.nova-lite-v1:0"
-                  - !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/anthropic.claude-*"
+                  - "arn:aws:bedrock:*:*:foundation-model/*nova-lite*"
+                  - "arn:aws:bedrock:*:*:inference-profile/*nova-lite*"
+                  - "arn:aws:bedrock:*:*:foundation-model/*haiku*"
+                  - "arn:aws:bedrock:*:*:inference-profile/*haiku*"
               # SES Access
               - Effect: Allow
                 Action:
