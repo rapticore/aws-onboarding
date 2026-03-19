@@ -1,0 +1,31 @@
+{
+    "FunctionName": "Azure-Identity-pool-lambda",
+    "FunctionArn": "arn:aws:lambda:us-west-2:343027753149:function:Azure-Identity-pool-lambda",
+    "Runtime": "python3.13",
+    "Role": "arn:aws:iam::343027753149:role/service-role/Azure-Identity-pool-lambda-role-va0kycih",
+    "Handler": "lambda_function.lambda_handler",
+    "CodeSize": 1583,
+    "Description": "",
+    "Timeout": 3,
+    "MemorySize": 128,
+    "LastModified": "2025-03-13T04:15:33.000+0000",
+    "CodeSha256": "oGxMGLSTrdGwHaSjKxYKudPUgkosv2NCcBN08IYa+ps=",
+    "Version": "$LATEST",
+    "TracingConfig": {
+        "Mode": "PassThrough"
+    },
+    "RevisionId": "af05a201-1a46-404a-b881-3561a138c74f",
+    "State": "Active",
+    "LastUpdateStatus": "Successful",
+    "PackageType": "Zip",
+    "Architectures": [
+        "x86_64"
+    ],
+    "EphemeralStorage": {
+        "Size": 512
+    },
+    "SnapStart": {
+        "ApplyOn": "None",
+        "OptimizationStatus": "Off"
+    }
+}

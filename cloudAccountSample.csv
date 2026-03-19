@@ -1,0 +1,2 @@
+AccountName,RoleARN
+Rapticore Account,arn:aws:iam::123456789123:role/rapticore-ro
