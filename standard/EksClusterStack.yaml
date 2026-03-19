@@ -223,6 +223,7 @@ Resources:
       AddonName: vpc-cni
       ClusterName: !Ref ClusterName
       ResolveConflicts: OVERWRITE
+      ConfigurationValues: '{"env":{"ENABLE_PREFIX_DELEGATION":"true","WARM_PREFIX_TARGET":"1","MINIMUM_IP_TARGET":"50","WARM_IP_TARGET":"10"}}'
 
   CoreDnsAddon:
     Type: AWS::EKS::Addon

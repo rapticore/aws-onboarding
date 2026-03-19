@@ -68,7 +68,58 @@ Parameters:
     Default: "t4g.large,t4g.xlarge,t4g.2xlarge,m7g.large,m7g.xlarge,m7g.2xlarge"
     Description: List of EC2 instance types for the spot node group
 
+  ClusterEndpoint:
+    Type: String
+    Description: EKS cluster API server endpoint (from EksClusterStack)
+
+  ClusterCertificateAuthority:
+    Type: String
+    Description: EKS cluster certificate authority data, base64 encoded (from EksClusterStack)
+
+  ClusterServiceCidr:
+    Type: String
+    Default: "10.100.0.0/16"
+    Description: Kubernetes service IPv4 CIDR (from EksClusterStack)
+
 Resources:
+  #####
+  # Launch Template — sets maxPods=110 via nodeadm for AL2023
+  # Required because prefix delegation increases available IPs but
+  # the kubelet default max-pods calculation ignores it.
+  #####
+  NodeLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        BlockDeviceMappings:
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeSize: !Ref DiskSize
+              VolumeType: gp3
+              Encrypted: true
+        UserData:
+          Fn::Base64: !Sub |
+            MIME-Version: 1.0
+            Content-Type: multipart/mixed; boundary="BOUNDARY"
+
+            --BOUNDARY
+            Content-Type: application/node.eks.aws
+
+            ---
+            apiVersion: node.eks.aws/v1alpha1
+            kind: NodeConfig
+            spec:
+              cluster:
+                name: ${ClusterName}
+                apiServerEndpoint: ${ClusterEndpoint}
+                certificateAuthority: ${ClusterCertificateAuthority}
+                cidr: ${ClusterServiceCidr}
+              kubelet:
+                config:
+                  maxPods: 110
+
+            --BOUNDARY--
+
   #####
   # EKS Node Group
   #####
@@ -83,9 +134,11 @@ Resources:
         MinSize: !Ref MinSize
         MaxSize: !Ref MaxSize
       InstanceTypes: !Ref InstanceTypes
-      DiskSize: !Ref DiskSize
       CapacityType: !Ref CapacityType
       AmiType: !Ref AmiType
+      LaunchTemplate:
+        Id: !Ref NodeLaunchTemplate
+        Version: !GetAtt NodeLaunchTemplate.LatestVersionNumber
       Labels:
         role: worker
         nodegroup: !Ref NodeGroupName
@@ -109,9 +162,11 @@ Resources:
         MinSize: 0
         MaxSize: !Ref MaxSize
       InstanceTypes: !Ref SpotInstanceTypes
-      DiskSize: !Ref DiskSize
       CapacityType: SPOT
       AmiType: !Ref AmiType
+      LaunchTemplate:
+        Id: !Ref NodeLaunchTemplate
+        Version: !GetAtt NodeLaunchTemplate.LatestVersionNumber
       Labels:
         role: worker
         nodegroup: !Sub "${NodeGroupName}-spot"
