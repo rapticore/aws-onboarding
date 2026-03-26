@@ -681,6 +681,77 @@ Resources:
                   - logs:PutRetentionPolicy
                 Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/eks/${ClusterName}/*"
 
+  #####
+  # Cluster Autoscaler IAM Role (IRSA)
+  # Allows the Cluster Autoscaler to discover and scale ASGs.
+  # Uses tag-based conditions so it can only scale ASGs owned by this cluster.
+  #####
+  ClusterAutoscalerRole:
+    Type: AWS::IAM::Role
+    DependsOn: OidcProvider
+    Properties:
+      RoleName: !Sub "${ClusterName}-cluster-autoscaler"
+      AssumeRolePolicyDocument:
+        Fn::Sub:
+          - |
+            {
+              "Version": "2012-10-17",
+              "Statement": [{
+                "Effect": "Allow",
+                "Principal": {
+                  "Federated": "arn:aws:iam::${AWS::AccountId}:oidc-provider/${OidcUrl}"
+                },
+                "Action": "sts:AssumeRoleWithWebIdentity",
+                "Condition": {
+                  "StringEquals": {
+                    "${OidcUrl}:aud": "sts.amazonaws.com",
+                    "${OidcUrl}:sub": "system:serviceaccount:kube-system:cluster-autoscaler"
+                  }
+                }
+              }]
+            }
+          - OidcUrl: !Select [1, !Split ["https://", !GetAtt EksCluster.OpenIdConnectIssuerUrl]]
+      Policies:
+        - PolicyName: ClusterAutoscalerPolicy
+          PolicyDocument:
+            Fn::Sub: |
+              {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Sid": "ClusterAutoscalerDescribe",
+                    "Effect": "Allow",
+                    "Action": [
+                      "autoscaling:DescribeAutoScalingGroups",
+                      "autoscaling:DescribeAutoScalingInstances",
+                      "autoscaling:DescribeLaunchConfigurations",
+                      "autoscaling:DescribeScalingActivities",
+                      "autoscaling:DescribeTags",
+                      "ec2:DescribeImages",
+                      "ec2:DescribeInstanceTypes",
+                      "ec2:DescribeLaunchTemplateVersions",
+                      "ec2:GetInstanceTypesFromInstanceRequirements",
+                      "eks:DescribeNodegroup"
+                    ],
+                    "Resource": "*"
+                  },
+                  {
+                    "Sid": "ClusterAutoscalerScale",
+                    "Effect": "Allow",
+                    "Action": [
+                      "autoscaling:SetDesiredCapacity",
+                      "autoscaling:TerminateInstanceInAutoScalingGroup"
+                    ],
+                    "Resource": "*",
+                    "Condition": {
+                      "StringEquals": {
+                        "aws:ResourceTag/k8s.io/cluster-autoscaler/${ClusterName}": "owned"
+                      }
+                    }
+                  }
+                ]
+              }
+
 Outputs:
   ClusterName:
     Description: Name of the EKS cluster
@@ -753,6 +824,12 @@ Outputs:
     Value: !GetAtt FluentBitRole.Arn
     Export:
       Name: !Sub "${AWS::StackName}-FluentBitRoleArn"
+
+  ClusterAutoscalerRoleArn:
+    Description: ARN of the IAM role for Cluster Autoscaler
+    Value: !GetAtt ClusterAutoscalerRole.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-ClusterAutoscalerRoleArn"
 
   VpcId:
     Description: VPC ID where the cluster is deployed
