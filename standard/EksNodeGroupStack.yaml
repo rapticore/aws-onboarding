@@ -37,7 +37,7 @@ Parameters:
 
   MinSize:
     Type: Number
-    Default: 1
+    Default: 2
     Description: Minimum number of nodes
 
   MaxSize:
@@ -65,8 +65,8 @@ Parameters:
 
   SpotInstanceTypes:
     Type: CommaDelimitedList
-    Default: "t4g.large,t4g.xlarge,t4g.2xlarge,m7g.large,m7g.xlarge,m7g.2xlarge"
-    Description: List of EC2 instance types for the spot node group
+    Default: "m7g.2xlarge,t4g.2xlarge,r7g.xlarge,m7g.xlarge"
+    Description: List of memory-optimized EC2 instance types for the spot node group (discovery workloads)
 
   ClusterEndpoint:
     Type: String
@@ -145,6 +145,7 @@ Resources:
       Tags:
         Name: !Sub "${ClusterName}-${NodeGroupName}"
         Environment: production
+        k8s.io/cluster-autoscaler/enabled: "true"
       UpdateConfig:
         MaxUnavailable: 1
 
@@ -174,10 +175,11 @@ Resources:
       Taints:
         - Key: spot
           Value: "true"
-          Effect: PREFER_NO_SCHEDULE
+          Effect: NO_SCHEDULE
       Tags:
         Name: !Sub "${ClusterName}-${NodeGroupName}-spot"
         Environment: production
+        k8s.io/cluster-autoscaler/enabled: "true"
       UpdateConfig:
         MaxUnavailable: 1
 
