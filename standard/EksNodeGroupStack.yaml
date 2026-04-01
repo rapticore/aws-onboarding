@@ -1,0 +1,253 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: EKS Node Group stack for Rapticore tenant deployment
+
+Parameters:
+  ClusterName:
+    Type: String
+    Default: rapticore-eks
+    Description: Name of the EKS cluster
+
+  NodeGroupName:
+    Type: String
+    Default: rapticore-nodes
+    Description: Name of the node group
+
+  NodeRoleArn:
+    Type: String
+    Description: ARN of the IAM role for EKS nodes
+
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: List of subnet IDs for the node group
+
+  InstanceTypes:
+    Type: CommaDelimitedList
+    Default: "t4g.xlarge,t4g.large,m7g.xlarge"
+    Description: List of EC2 instance types for the node group
+
+  DiskSize:
+    Type: Number
+    Default: 50
+    Description: Disk size in GB for node root volume
+
+  DesiredSize:
+    Type: Number
+    Default: 2
+    Description: Desired number of nodes
+
+  MinSize:
+    Type: Number
+    Default: 2
+    Description: Minimum number of nodes
+
+  MaxSize:
+    Type: Number
+    Default: 10
+    Description: Maximum number of nodes
+
+  CapacityType:
+    Type: String
+    Default: ON_DEMAND
+    AllowedValues:
+      - ON_DEMAND
+      - SPOT
+    Description: Capacity type for the node group
+
+  AmiType:
+    Type: String
+    Default: AL2023_ARM_64_STANDARD
+    AllowedValues:
+      - AL2023_x86_64_STANDARD
+      - AL2023_ARM_64_STANDARD
+      - BOTTLEROCKET_x86_64
+      - BOTTLEROCKET_ARM_64
+    Description: AMI type for the nodes
+
+  SpotInstanceTypes:
+    Type: CommaDelimitedList
+    Default: "m7g.2xlarge,t4g.2xlarge,r7g.xlarge,m7g.xlarge"
+    Description: List of memory-optimized EC2 instance types for the spot-batch node group (discovery, analytics, policy)
+
+  SpotPersistentInstanceTypes:
+    Type: CommaDelimitedList
+    Default: "t4g.large,t4g.xlarge,m7g.large"
+    Description: List of EC2 instance types for the spot-persistent node group (app-sec, vcs-remediation, api/web spot replicas)
+
+  ClusterEndpoint:
+    Type: String
+    Description: EKS cluster API server endpoint (from EksClusterStack)
+
+  ClusterCertificateAuthority:
+    Type: String
+    Description: EKS cluster certificate authority data, base64 encoded (from EksClusterStack)
+
+  ClusterServiceCidr:
+    Type: String
+    Default: "10.100.0.0/16"
+    Description: Kubernetes service IPv4 CIDR (from EksClusterStack)
+
+Resources:
+  #####
+  # Launch Template — sets maxPods=110 via nodeadm for AL2023
+  # Required because prefix delegation increases available IPs but
+  # the kubelet default max-pods calculation ignores it.
+  #####
+  NodeLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        BlockDeviceMappings:
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeSize: !Ref DiskSize
+              VolumeType: gp3
+              Encrypted: true
+        UserData:
+          Fn::Base64: !Sub |
+            MIME-Version: 1.0
+            Content-Type: multipart/mixed; boundary="BOUNDARY"
+
+            --BOUNDARY
+            Content-Type: application/node.eks.aws
+
+            ---
+            apiVersion: node.eks.aws/v1alpha1
+            kind: NodeConfig
+            spec:
+              cluster:
+                name: ${ClusterName}
+                apiServerEndpoint: ${ClusterEndpoint}
+                certificateAuthority: ${ClusterCertificateAuthority}
+                cidr: ${ClusterServiceCidr}
+              kubelet:
+                config:
+                  maxPods: 110
+
+            --BOUNDARY--
+
+  #####
+  # EKS Node Group
+  #####
+  EksNodeGroup:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !Ref ClusterName
+      NodeRole: !Ref NodeRoleArn
+      Subnets: !Ref SubnetIds
+      ScalingConfig:
+        DesiredSize: !Ref DesiredSize
+        MinSize: !Ref MinSize
+        MaxSize: !Ref MaxSize
+      InstanceTypes: !Ref InstanceTypes
+      CapacityType: !Ref CapacityType
+      AmiType: !Ref AmiType
+      LaunchTemplate:
+        Id: !Ref NodeLaunchTemplate
+        Version: !GetAtt NodeLaunchTemplate.LatestVersionNumber
+      Labels:
+        role: worker
+        nodegroup: !Ref NodeGroupName
+        capacity-type: on-demand
+      Tags:
+        Name: !Sub "${ClusterName}-${NodeGroupName}"
+        Environment: production
+        k8s.io/cluster-autoscaler/enabled: "true"
+      UpdateConfig:
+        MaxUnavailable: 1
+
+  #####
+  # Additional Node Group for Spot Instances (Cost Optimization)
+  #####
+  EksSpotNodeGroup:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !Ref ClusterName
+      NodeRole: !Ref NodeRoleArn
+      Subnets: !Ref SubnetIds
+      ScalingConfig:
+        DesiredSize: 0
+        MinSize: 0
+        MaxSize: !Ref MaxSize
+      InstanceTypes: !Ref SpotInstanceTypes
+      CapacityType: SPOT
+      AmiType: !Ref AmiType
+      LaunchTemplate:
+        Id: !Ref NodeLaunchTemplate
+        Version: !GetAtt NodeLaunchTemplate.LatestVersionNumber
+      Labels:
+        role: worker
+        nodegroup: !Sub "${NodeGroupName}-spot"
+        capacity-type: spot
+        spot-tier: batch
+      Taints:
+        - Key: spot
+          Value: "true"
+          Effect: NO_SCHEDULE
+      Tags:
+        Name: !Sub "${ClusterName}-${NodeGroupName}-spot"
+        Environment: production
+        k8s.io/cluster-autoscaler/enabled: "true"
+      UpdateConfig:
+        MaxUnavailable: 1
+
+  #####
+  # Spot Persistent Node Group for non-critical long-running services
+  # (app-sec, vcs-remediation, api/web spot replicas)
+  # Isolated from spot-batch to prevent discovery/analytics crashes from affecting these services.
+  #####
+  EksSpotPersistentNodeGroup:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !Ref ClusterName
+      NodeRole: !Ref NodeRoleArn
+      Subnets: !Ref SubnetIds
+      ScalingConfig:
+        DesiredSize: 1
+        MinSize: 1
+        MaxSize: 5
+      InstanceTypes: !Ref SpotPersistentInstanceTypes
+      CapacityType: SPOT
+      AmiType: !Ref AmiType
+      LaunchTemplate:
+        Id: !Ref NodeLaunchTemplate
+        Version: !GetAtt NodeLaunchTemplate.LatestVersionNumber
+      Labels:
+        role: worker
+        nodegroup: !Sub "${NodeGroupName}-spot-persistent"
+        capacity-type: spot
+        spot-tier: persistent
+      Taints:
+        - Key: spot-persistent
+          Value: "true"
+          Effect: NO_SCHEDULE
+      Tags:
+        Name: !Sub "${ClusterName}-${NodeGroupName}-spot-persistent"
+        Environment: production
+        k8s.io/cluster-autoscaler/enabled: "true"
+      UpdateConfig:
+        MaxUnavailable: 1
+
+Outputs:
+  NodeGroupName:
+    Description: Name of the primary node group
+    Value: !Ref EksNodeGroup
+    Export:
+      Name: !Sub "${AWS::StackName}-NodeGroupName"
+
+  NodeGroupArn:
+    Description: ARN of the primary node group
+    Value: !GetAtt EksNodeGroup.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-NodeGroupArn"
+
+  SpotNodeGroupName:
+    Description: Name of the spot node group
+    Value: !Ref EksSpotNodeGroup
+    Export:
+      Name: !Sub "${AWS::StackName}-SpotNodeGroupName"
+
+  SpotNodeGroupArn:
+    Description: ARN of the spot node group
+    Value: !GetAtt EksSpotNodeGroup.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-SpotNodeGroupArn"

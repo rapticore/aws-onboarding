@@ -1,0 +1,749 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VpcId of your existing Virtual Private Cloud (VPC)
+    ConstraintDescription: must be the VPC Id of an existing Virtual Private Cloud.
+
+  Domain:
+    Description: "The domain name of your Rapticore instance."
+    Type: String
+    ConstraintDescription: must be a valid domain name i.e., domain.ore.rapticore.cloud
+
+  HostedZoneID:
+    Description: "The ID of your Route 53 hosted zone. Domain name record will be created in this zone."
+    Type: "AWS::Route53::HostedZone::Id"
+
+  AzureIdentityLambdaArn:
+    Description: "ARN of existing Lambda function to use for Custom Resource to create identity for azure tenant in identity pool"
+    Type: String
+
+  TenantId:
+    Type: String
+    Description: Unique tenant identifier
+
+  CognitoGroupName:
+    Type: String
+    Description: Cognito group name for this tenant
+
+  CrsAccountId:
+    Type: String
+    Description: AWS Account ID where CRS runs
+    Default: "422753814403"
+
+  CognitoManagementRoleArn:
+    Type: String
+    Description: ARN of role in CRS account for Cognito management
+    Default: "arn:aws:iam::422753814403:role/cognito-management-for-standard-tenants"
+
+  SharedUserPoolId:
+    Type: String
+    Description: Shared Cognito User Pool ID
+    Default: "us-west-2_ugQoEHBWd"
+
+  SharedUserPoolClientId:
+    Type: String
+    Description: Shared Cognito User Pool Client ID
+    Default: "3c0adcuesr3fjrc1tri6g78uf"
+
+  QueuesToDelete:
+    Type: CommaDelimitedList
+    Default: ""
+    Description: "Comma-separated list of SQS Queue ARNs to delete (leave empty if none)"
+
+  MonitoredAccountIds:
+    Type: CommaDelimitedList
+    Description: "List of AWS Account IDs to monitor for security events(Dummy value as default)"
+    Default: "422753814403"
+
+  EventBusName:
+    Type: String
+    Default: "RapticoreEventBus"
+    Description: "Name of the custom EventBridge bus"
+
+  AzureTenantId:
+    Type: String
+    Default: ""
+    Description: "Azure Tenant ID (required only for azure tenant type)"
+    AllowedPattern: "^$|^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    ConstraintDescription: "Must be a valid Azure Tenant ID (GUID format) or empty"
+
+Conditions:
+  HasAzureTenant: !Not [!Equals [!Ref AzureTenantId, ""]]
+
+Resources:
+  #####
+  # TLS Certificate (used by EKS ingress)
+  #####
+  Cert:
+    Type: "AWS::CertificateManager::Certificate"
+    Properties:
+      DomainName: !Ref Domain
+      ValidationMethod: DNS
+
+  #####
+  # Azure Web Identity Resources (Conditional)
+  #####
+  AzureOpenIDConnectProvider:
+    Type: AWS::IAM::OIDCProvider
+    Condition: HasAzureTenant
+    Properties:
+      Url: !Sub "https://sts.windows.net/${AzureTenantId}/"
+      ClientIdList:
+        - !Sub "api://${AzureTenantId}"
+      ThumbprintList:
+        - "626d44e704d1ceabe3bf0d53397464ac8080142c"
+
+  AzureWebIdentityRole:
+    Type: AWS::IAM::Role
+    Condition: HasAzureTenant
+    Properties:
+      RoleName: !Sub "AzureWebIdentityRoleForAzureRTTM-${TenantId}"
+      AssumeRolePolicyDocument: !Sub
+        - |
+          {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "Federated": "${OIDCProvider}"
+                },
+                "Action": "sts:AssumeRoleWithWebIdentity",
+                "Condition": {
+                  "StringEquals": {
+                    "sts.windows.net/${TenantId}/:aud": "api://${TenantId}"
+                  }
+                }
+              }
+            ]
+          }
+        - OIDCProvider: !Ref AzureOpenIDConnectProvider
+          TenantId: !Ref AzureTenantId
+
+      Policies:
+        - PolicyName: AzureRTTMSQSPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                Resource: !GetAtt RealTimeThreatAlertTriggerAzureQueue.Arn
+      Tags:
+        - Key: TenantId
+          Value: !Ref TenantId
+
+  RealTimeThreatMonitoringRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "Rapticore${TenantId}ReceiverRule"
+      Description: !Sub "Receiver rule for ${TenantId} tenancy"
+      EventBusName: !Ref EventBusName
+      EventPattern:
+        source:
+          - "aws.ec2"
+          - "aws.iam"
+          - "aws.signin"
+          - "aws.s3"
+          - "aws.sqs"
+          - "aws.sns"
+          - "aws.rds"
+          - "aws.sso"
+        account: !Ref MonitoredAccountIds
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt RealTimeThreatAlertTriggerQueue.Arn
+          Id: "RealTimeThreatSQSTarget"
+
+  RealTimeThreatAlertQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref RealTimeThreatAlertTriggerQueue
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt RealTimeThreatAlertTriggerQueue.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !GetAtt RealTimeThreatMonitoringRule.Arn
+
+  #####
+  # S3 Bucket resources
+  #####
+
+  # VCS S3 Bucket
+  VcsContentBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "vcs-content-${TenantId}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: TenantId
+          Value: !Ref TenantId
+
+  #####
+  # SQS Queue resources
+  #####
+
+  # Rapticore Vulnerability Queue
+  RapticoreVulnerabilityDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "rapticore-vulnerability-${TenantId}-dlq"
+      MessageRetentionPeriod: 1209600 # 14 days
+
+  RapticoreVulnerabilityQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "rapticore-vulnerability-${TenantId}"
+      MessageRetentionPeriod: 43200 # 12 hours
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt RapticoreVulnerabilityDLQ.Arn
+        maxReceiveCount: 3
+
+  # Rapticore Container Vulnerability Queue
+  RapticoreContainerVulnerabilityDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "rapticore-container-vulnerability-${TenantId}-dlq"
+      MessageRetentionPeriod: 1209600 # 14 days
+
+  RapticoreContainerVulnerabilityQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "rapticore-container-vulnerability-${TenantId}"
+      MessageRetentionPeriod: 43200 # 12 hours
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt RapticoreContainerVulnerabilityDLQ.Arn
+        maxReceiveCount: 3
+
+  # Rapticore Resource Vulnerability Summary Queue
+  RapticoreResourceVulnerabilitySummaryDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "rapticore-resource-vulnerability-summary-${TenantId}-dlq"
+      MessageRetentionPeriod: 1209600 # 14 days
+
+  RapticoreResourceVulnerabilitySummaryQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "rapticore-resource-vulnerability-summary-${TenantId}"
+      MessageRetentionPeriod: 43200 # 12 hours
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt RapticoreResourceVulnerabilitySummaryDLQ.Arn
+        maxReceiveCount: 3
+
+  # Rapticore Reactive Remediation Queue
+  RapticoreReactiveRemediationDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "rapticore-reactive-remediation-${TenantId}-dlq"
+      MessageRetentionPeriod: 1209600 # 14 days
+
+  RapticoreReactiveRemediationQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "rapticore-reactive-remediation-${TenantId}"
+      MessageRetentionPeriod: 43200 # 12 hours
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt RapticoreReactiveRemediationDLQ.Arn
+        maxReceiveCount: 3
+
+  # Real-time Threat Alert Trigger Queue (tenant-specific)
+  RealTimeThreatAlertTriggerDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "real-time-threat-alert-trigger-${TenantId}-dlq"
+      MessageRetentionPeriod: 1209600 # 14 days
+
+  RealTimeThreatAlertTriggerQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "real-time-threat-alert-trigger-${TenantId}"
+      MessageRetentionPeriod: 43200 # 12 hours
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt RealTimeThreatAlertTriggerDLQ.Arn
+        maxReceiveCount: 3
+
+  # Real-time Threat Alert Trigger Azure Queue (Conditional)
+  RealTimeThreatAlertTriggerAzureDLQ:
+    Type: AWS::SQS::Queue
+    Condition: HasAzureTenant
+    Properties:
+      QueueName: !Sub "real-time-threat-alert-trigger-azure-${TenantId}-dlq"
+      MessageRetentionPeriod: 1209600 # 14 days
+
+  RealTimeThreatAlertTriggerAzureQueue:
+    Type: AWS::SQS::Queue
+    Condition: HasAzureTenant
+    Properties:
+      QueueName: !Sub "real-time-threat-alert-trigger-azure-${TenantId}"
+      MessageRetentionPeriod: 43200 # 12 hours
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt RealTimeThreatAlertTriggerAzureDLQ.Arn
+        maxReceiveCount: 3
+
+  # VCS Trigger AppSec Queue
+  VcsTriggerAppSecDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "vcs-trigger-appsec-${TenantId}-dlq"
+      MessageRetentionPeriod: 1209600 # 14 days
+
+  VcsTriggerAppSecQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "vcs-trigger-appsec-${TenantId}"
+      MessageRetentionPeriod: 43200 # 12 hours
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt VcsTriggerAppSecDLQ.Arn
+        maxReceiveCount: 3
+
+  # VCS Trigger Post Scan Queue
+  VcsTriggerPostScanDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "vcs-trigger-post-scan-${TenantId}-dlq"
+      MessageRetentionPeriod: 1209600 # 14 days
+
+  VcsTriggerPostScanQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "vcs-trigger-post-scan-${TenantId}"
+      MessageRetentionPeriod: 43200 # 12 hours
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt VcsTriggerPostScanDLQ.Arn
+        maxReceiveCount: 3
+
+  #####
+  # Azure Workload Identity Resources
+  #####
+  AzureWorkloadIdentityPool:
+    Type: AWS::Cognito::IdentityPool
+    Properties:
+      IdentityPoolName: !Join
+        - ""
+        - - "azure_workload_identity_pool_"
+          - !Select [0, !Split [".", !Ref Domain]]
+      AllowUnauthenticatedIdentities: false
+      DeveloperProviderName: !Join
+        - ""
+        - - "azure_workload_identity_"
+          - !Select [0, !Split [".", !Ref Domain]]
+
+  LambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName: !Ref AzureIdentityLambdaArn
+      Principal: "cloudformation.amazonaws.com"
+      SourceAccount: !Ref "AWS::AccountId"
+
+  # Custom Resource that uses the existing Lambda function
+  GetOpenIdTokenCustomResource:
+    Type: Custom::GetOpenIdToken
+    DependsOn:
+      - LambdaPermission
+    Properties:
+      ServiceToken: !Ref AzureIdentityLambdaArn
+      IdentityPoolId: !Ref AzureWorkloadIdentityPool
+      #####
+      # Login Key should be same as developer provider name
+      #####
+      LoginKey: !Join
+        - ""
+        - - "azure_workload_identity_"
+          - !Select [0, !Split [".", !Ref Domain]]
+      LoginValue: !Select [0, !Split [".", !Ref Domain]]
+
+  #####
+  # CRS Cross-Account Authentication Resources
+  #####
+  CrsServiceUserPassword:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub "CrsServiceUserPassword-${TenantId}"
+      GenerateSecretString:
+        SecretStringTemplate: !Sub '{"username": "crs-service-${TenantId}@rapticore.com"}'
+        GenerateStringKey: password
+        ExcludeCharacters: '"@/\'
+        PasswordLength: 32
+        RequireEachIncludedType: true
+
+  CrsUserManagementRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: CognitoUserManagement
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sts:AssumeRole
+                Resource: !Ref CognitoManagementRoleArn
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref CrsServiceUserPassword
+
+  CrsUserManagementFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "CrsUserManagement-${TenantId}"
+      Runtime: python3.11
+      Handler: index.handler
+      Role: !GetAtt CrsUserManagementRole.Arn
+      Timeout: 60
+      Code:
+        ZipFile: |
+          import boto3
+          import json
+          import cfnresponse
+
+          def handler(event, context):
+              try:
+                  # Assume cross-account role first
+                  sts = boto3.client('sts')
+                  cognito_mgmt_role_arn = event['ResourceProperties']['CognitoManagementRoleArn']
+                  
+                  assumed_role = sts.assume_role(
+                      RoleArn=cognito_mgmt_role_arn,
+                      RoleSessionName='cognito-user-management'
+                  )
+                  
+                  # Create Cognito client with assumed role credentials
+                  cognito = boto3.client(
+                      'cognito-idp',
+                      region_name='us-west-2',
+                      aws_access_key_id=assumed_role['Credentials']['AccessKeyId'],
+                      aws_secret_access_key=assumed_role['Credentials']['SecretAccessKey'],
+                      aws_session_token=assumed_role['Credentials']['SessionToken']
+                  )
+                  
+                  secrets = boto3.client('secretsmanager')
+                  
+                  user_pool_id = event['ResourceProperties']['UserPoolId']
+                  username = event['ResourceProperties']['Username']
+                  group_name = event['ResourceProperties']['GroupName']
+                  password_secret_arn = event['ResourceProperties']['PasswordSecretArn']
+                  
+                  if event['RequestType'] == 'Create' or event['RequestType'] == 'Update':
+                      # Check if group exists, create if not
+                      try:
+                          cognito.get_group(GroupName=group_name, UserPoolId=user_pool_id)
+                          print(f"Group {group_name} already exists")
+                      except cognito.exceptions.ResourceNotFoundException:
+                          print(f"Creating group {group_name}")
+                          cognito.create_group(
+                              GroupName=group_name,
+                              UserPoolId=user_pool_id,
+                              Description=f"CRS tenant group for {group_name}"
+                          )
+                      
+                      # Check if user exists
+                      user_exists = False
+                      try:
+                          cognito.admin_get_user(UserPoolId=user_pool_id, Username=username)
+                          user_exists = True
+                          print(f"User {username} already exists")
+                      except cognito.exceptions.UserNotFoundException:
+                          print(f"User {username} does not exist, creating")
+                      
+                      if not user_exists:
+                          # Get password from secret
+                          secret = secrets.get_secret_value(SecretId=password_secret_arn)
+                          password_data = json.loads(secret['SecretString'])
+                          password = password_data['password']
+                          
+                          # Create user
+                          cognito.admin_create_user(
+                              UserPoolId=user_pool_id,
+                              Username=username,
+                              MessageAction='SUPPRESS',
+                              TemporaryPassword='TempPassword123!'
+                          )
+                          
+                          # Set permanent password
+                          cognito.admin_set_user_password(
+                              UserPoolId=user_pool_id,
+                              Username=username,
+                              Password=password,
+                              Permanent=True
+                          )
+                      
+                      # Always ensure user is in group
+                      try:
+                          cognito.admin_add_user_to_group(
+                              UserPoolId=user_pool_id,
+                              Username=username,
+                              GroupName=group_name
+                          )
+                      except cognito.exceptions.UserNotConfirmedException:
+                          pass  # User already in group
+                      
+                      cfnresponse.send(event, context, cfnresponse.SUCCESS, {'Username': username})
+                  
+                  elif event['RequestType'] == 'Delete':
+                      # Don't delete user - preserve it for reuse
+                      cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+                      
+              except Exception as e:
+                  print(f"Error: {str(e)}")
+                  cfnresponse.send(event, context, cfnresponse.FAILED, {'Error': str(e)})
+
+  CreateCrsServiceUser:
+    Type: Custom::CrsServiceUser
+    Properties:
+      ServiceToken: !GetAtt CrsUserManagementFunction.Arn
+      UserPoolId: !Ref SharedUserPoolId
+      Username: !Sub "crs-service-${TenantId}@rapticore.com"
+      GroupName: !Ref CognitoGroupName
+      PasswordSecretArn: !Ref CrsServiceUserPassword
+      CognitoManagementRoleArn: !Ref CognitoManagementRoleArn
+      Timestamp: "2025-08-17-19-11"
+
+  CrsCredentials:
+    Type: AWS::SecretsManager::Secret
+    DependsOn: CreateCrsServiceUser
+    Properties:
+      Name: !Sub "CrsCredentials-${TenantId}"
+      SecretString: !Sub |
+        {
+          "tenant_id": "${TenantId}",
+          "aws_region": "us-west-2",
+          "user_pool_id": "${SharedUserPoolId}",
+          "client_id": "${SharedUserPoolClientId}",
+          "service_username": "crs-service-${TenantId}@rapticore.com",
+          "service_password": "{{resolve:secretsmanager:${CrsServiceUserPassword}:SecretString:password}}",
+          "target_account_id": "${AWS::AccountId}",
+          "api_endpoint": "https://${Domain}/api/v1/ingest/sarif",
+          "cognito_group": "${CognitoGroupName}",
+          "cross_account_role_arn": "arn:aws:iam::${CrsAccountId}:role/crs-cognito-access-standard-tenancy"
+        }
+  #####
+  # Queue Deletion Custom Resource
+  #####
+  QueueDeletionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: SQSDeletePolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:DeleteQueue
+                  - sqs:GetQueueAttributes
+                  - sqs:ListQueues
+                Resource: "*"
+
+  QueueDeletionFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "QueueDeletion-${TenantId}"
+      Runtime: python3.11
+      Handler: index.handler
+      Role: !GetAtt QueueDeletionRole.Arn
+      Timeout: 300
+      Code:
+        ZipFile: |
+          import boto3
+          import json
+          import cfnresponse
+          import logging
+
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+
+          def handler(event, context):
+              try:
+                  logger.info(f"Event: {json.dumps(event)}")
+                  
+                  sqs = boto3.client('sqs')
+                  queue_arns = event['ResourceProperties'].get('QueueArns', [])
+                  
+                  # Handle empty list or empty string
+                  if not queue_arns or (len(queue_arns) == 1 and queue_arns[0] == ''):
+                      logger.info("No queues to delete")
+                      cfnresponse.send(event, context, cfnresponse.SUCCESS, {
+                          'Message': 'No queues specified',
+                          'DeletedQueues': [],
+                          'FailedQueues': [],
+                          'TotalProcessed': 0,
+                          'SuccessCount': 0,
+                          'FailureCount': 0
+                      })
+                      return
+                  
+                  deleted_queues = []
+                  failed_queues = []
+                  
+                  if event['RequestType'] in ['Create', 'Update']:
+                      for queue_arn in queue_arns:
+                          try:
+                              # Extract queue URL from ARN
+                              # ARN format: arn:aws:sqs:region:account:queue-name
+                              arn_parts = queue_arn.split(':')
+                              if len(arn_parts) >= 6:
+                                  region = arn_parts[3]
+                                  account = arn_parts[4]
+                                  queue_name = arn_parts[5]
+                                  queue_url = f"https://sqs.{region}.amazonaws.com/{account}/{queue_name}"
+                              else:
+                                  logger.error(f"Invalid ARN format: {queue_arn}")
+                                  failed_queues.append(queue_arn)
+                                  continue
+                              
+                              logger.info(f"Attempting to delete queue: {queue_url}")
+                              
+                              # Check if queue exists first
+                              try:
+                                  sqs.get_queue_attributes(QueueUrl=queue_url, AttributeNames=['QueueArn'])
+                                  logger.info(f"Queue exists, proceeding with deletion: {queue_url}")
+                              except sqs.exceptions.QueueDoesNotExist:
+                                  logger.info(f"Queue does not exist, skipping: {queue_url}")
+                                  deleted_queues.append(queue_arn)
+                                  continue
+                              
+                              # Delete the queue
+                              sqs.delete_queue(QueueUrl=queue_url)
+                              deleted_queues.append(queue_arn)
+                              logger.info(f"Successfully deleted queue: {queue_url}")
+                              
+                          except Exception as e:
+                              logger.error(f"Failed to delete queue {queue_arn}: {str(e)}")
+                              failed_queues.append(queue_arn)
+                  
+                  elif event['RequestType'] == 'Delete':
+                      logger.info("Stack deletion - no queue cleanup needed")
+                  
+                  # Prepare response
+                  response_data = {
+                      'DeletedQueues': deleted_queues,
+                      'FailedQueues': failed_queues,
+                      'TotalProcessed': len(queue_arns) if queue_arns and queue_arns[0] != '' else 0,
+                      'SuccessCount': len(deleted_queues),
+                      'FailureCount': len(failed_queues)
+                  }
+                  
+                  # Determine success/failure
+                  if failed_queues:
+                      logger.warning(f"Some queues failed to delete: {failed_queues}")
+                      # Still report success if at least some queues were processed
+                      cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data)
+                  else:
+                      logger.info("All specified queues processed successfully")
+                      cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data)
+                      
+              except Exception as e:
+                  logger.error(f"Unexpected error: {str(e)}")
+                  cfnresponse.send(event, context, cfnresponse.FAILED, {'Error': str(e)})
+
+  DeleteSpecifiedQueues:
+    Type: Custom::QueueDeletion
+    Properties:
+      ServiceToken: !GetAtt QueueDeletionFunction.Arn
+      QueueArns: !Ref QueuesToDelete
+      Timestamp: "2025-08-13-20-30" # Change this to force re-execution
+
+Outputs:
+  RapticoreStandardURL:
+    Value: !Join ["", ["https://", !Ref Domain]]
+    Description: Rapticore Standard URL
+
+  AzureWorkloadIdentityPoolId:
+    Description: The ID of the Cognito Identity Pool for Azure workload identity
+    Value: !Ref AzureWorkloadIdentityPool
+
+  CreatedIdentityId:
+    Description: The ID of the created identity in the identity pool
+    Value:
+      Fn::GetAtt:
+        - GetOpenIdTokenCustomResource
+        - IdentityId
+
+  CrsServiceUsername:
+    Description: CRS Service Username created
+    Value: !Sub "crs-service-${TenantId}@rapticore.com"
+
+  CrsRoleArn:
+    Description: Cross-account role ARN for CRS authentication (in CRS account)
+    Value: !Ref CognitoManagementRoleArn
+
+  CrsCredentialsSecret:
+    Description: Secret containing CRS authentication details
+    Value: !Ref CrsCredentials
+
+  VulnerabilityQueueURL:
+    Description: URL of the vulnerability queue
+    Value: !GetAtt RapticoreVulnerabilityQueue.QueueUrl
+
+  ContainerVulnerabilityQueueURL:
+    Description: URL of the container vulnerability queue
+    Value: !GetAtt RapticoreContainerVulnerabilityQueue.QueueUrl
+
+  ResourceVulnerabilitySummaryQueueURL:
+    Description: URL of the resource vulnerability summary queue
+    Value: !GetAtt RapticoreResourceVulnerabilitySummaryQueue.QueueUrl
+
+  ReactiveRemediationQueueURL:
+    Description: URL of the reactive remediation queue
+    Value: !GetAtt RapticoreReactiveRemediationQueue.QueueUrl
+
+  RealTimeThreatAlertTriggerQueueURL:
+    Description: URL of the real-time threat alert trigger queue
+    Value: !GetAtt RealTimeThreatAlertTriggerQueue.QueueUrl
+
+  RealTimeThreatAlertTriggerAzureQueueURL:
+    Description: URL of the real-time threat alert trigger azure queue
+    Condition: HasAzureTenant
+    Value: !GetAtt RealTimeThreatAlertTriggerAzureQueue.QueueUrl
+
+  VcsContentBucketName:
+    Description: Name of the VCS content S3 bucket
+    Value: !Ref VcsContentBucket
+
+  VcsTriggerAppSecQueueURL:
+    Description: URL of the VCS trigger appsec queue
+    Value: !GetAtt VcsTriggerAppSecQueue.QueueUrl
+
+  VcsTriggerPostScanQueueURL:
+    Description: URL of the VCS trigger post scan queue
+    Value: !GetAtt VcsTriggerPostScanQueue.QueueUrl
+
+  QueueDeletionResults:
+    Description: Results of queue deletion operation
+    Value: !Sub |
+      Deleted: ${DeleteSpecifiedQueues.SuccessCount} queues
+      Failed: ${DeleteSpecifiedQueues.FailureCount} queues
+      Total Processed: ${DeleteSpecifiedQueues.TotalProcessed} queues

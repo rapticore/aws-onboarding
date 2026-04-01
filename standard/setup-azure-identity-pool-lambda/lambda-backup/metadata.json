@@ -1,0 +1,7 @@
+{
+    "backup_date": "2025-09-09T14:06:06Z",
+    "source_arn": "arn:aws:lambda:us-west-2:343027753149:function:Azure-Identity-pool-lambda",
+    "source_region": "us-west-2",
+    "function_name": "Azure-Identity-pool-lambda",
+    "account_id": "343027753149"
+}
