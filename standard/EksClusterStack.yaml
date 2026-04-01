@@ -356,6 +356,8 @@ Resources:
                   - "arn:aws:s3:::vcs-centralized-data/*"
                   - "arn:aws:s3:::ore.c7n.remediation.policies"
                   - "arn:aws:s3:::ore.c7n.remediation.policies/*"
+                  - "arn:aws:s3:::rapticore-standard-tenants-postgres-db-backups"
+                  - "arn:aws:s3:::rapticore-standard-tenants-postgres-db-backups/*"
               # Bedrock Access
               - Effect: Allow
                 Action:

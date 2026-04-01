@@ -66,7 +66,12 @@ Parameters:
   SpotInstanceTypes:
     Type: CommaDelimitedList
     Default: "m7g.2xlarge,t4g.2xlarge,r7g.xlarge,m7g.xlarge"
-    Description: List of memory-optimized EC2 instance types for the spot node group (discovery workloads)
+    Description: List of memory-optimized EC2 instance types for the spot-batch node group (discovery, analytics, policy)
+
+  SpotPersistentInstanceTypes:
+    Type: CommaDelimitedList
+    Default: "t4g.large,t4g.xlarge,m7g.large"
+    Description: List of EC2 instance types for the spot-persistent node group (app-sec, vcs-remediation, api/web spot replicas)
 
   ClusterEndpoint:
     Type: String
@@ -142,6 +147,7 @@ Resources:
       Labels:
         role: worker
         nodegroup: !Ref NodeGroupName
+        capacity-type: on-demand
       Tags:
         Name: !Sub "${ClusterName}-${NodeGroupName}"
         Environment: production
@@ -172,12 +178,50 @@ Resources:
         role: worker
         nodegroup: !Sub "${NodeGroupName}-spot"
         capacity-type: spot
+        spot-tier: batch
       Taints:
         - Key: spot
           Value: "true"
           Effect: NO_SCHEDULE
       Tags:
         Name: !Sub "${ClusterName}-${NodeGroupName}-spot"
+        Environment: production
+        k8s.io/cluster-autoscaler/enabled: "true"
+      UpdateConfig:
+        MaxUnavailable: 1
+
+  #####
+  # Spot Persistent Node Group for non-critical long-running services
+  # (app-sec, vcs-remediation, api/web spot replicas)
+  # Isolated from spot-batch to prevent discovery/analytics crashes from affecting these services.
+  #####
+  EksSpotPersistentNodeGroup:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !Ref ClusterName
+      NodeRole: !Ref NodeRoleArn
+      Subnets: !Ref SubnetIds
+      ScalingConfig:
+        DesiredSize: 1
+        MinSize: 1
+        MaxSize: 5
+      InstanceTypes: !Ref SpotPersistentInstanceTypes
+      CapacityType: SPOT
+      AmiType: !Ref AmiType
+      LaunchTemplate:
+        Id: !Ref NodeLaunchTemplate
+        Version: !GetAtt NodeLaunchTemplate.LatestVersionNumber
+      Labels:
+        role: worker
+        nodegroup: !Sub "${NodeGroupName}-spot-persistent"
+        capacity-type: spot
+        spot-tier: persistent
+      Taints:
+        - Key: spot-persistent
+          Value: "true"
+          Effect: NO_SCHEDULE
+      Tags:
+        Name: !Sub "${ClusterName}-${NodeGroupName}-spot-persistent"
         Environment: production
         k8s.io/cluster-autoscaler/enabled: "true"
       UpdateConfig:
