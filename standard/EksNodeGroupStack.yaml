@@ -73,6 +73,11 @@ Parameters:
     Default: "t4g.large,t4g.xlarge,m7g.large"
     Description: List of EC2 instance types for the spot-persistent node group (app-sec, vcs-remediation, api/web spot replicas)
 
+  SpotPersistentMinSize:
+    Type: Number
+    Default: 1
+    Description: Minimum number of spot-persistent nodes (0 for dev clusters)
+
   ClusterEndpoint:
     Type: String
     Description: EKS cluster API server endpoint (from EksClusterStack)
@@ -202,8 +207,8 @@ Resources:
       NodeRole: !Ref NodeRoleArn
       Subnets: !Ref SubnetIds
       ScalingConfig:
-        DesiredSize: 1
-        MinSize: 1
+        DesiredSize: !Ref SpotPersistentMinSize
+        MinSize: !Ref SpotPersistentMinSize
         MaxSize: 5
       InstanceTypes: !Ref SpotPersistentInstanceTypes
       CapacityType: SPOT
