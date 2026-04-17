@@ -68,15 +68,24 @@ Parameters:
     AllowedPattern: "^$|^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
     ConstraintDescription: "Must be a valid Azure Tenant ID (GUID format) or empty"
 
+  EnableLegacyAcmCert:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: "Set to true to create per-tenant ACM cert (legacy, replaced by cert-manager + TLS passthrough)"
+
 Conditions:
   HasAzureTenant: !Not [!Equals [!Ref AzureTenantId, ""]]
+  CreateLegacyAcmCert: !Equals [!Ref EnableLegacyAcmCert, "true"]
 
 Resources:
   #####
-  # TLS Certificate (used by EKS ingress)
+  # TLS Certificate (legacy — replaced by cert-manager + Let's Encrypt)
+  # Disabled by default. Remove entirely after TLS passthrough is verified.
   #####
   Cert:
     Type: "AWS::CertificateManager::Certificate"
+    Condition: CreateLegacyAcmCert
     Properties:
       DomainName: !Ref Domain
       ValidationMethod: DNS
