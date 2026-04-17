@@ -222,7 +222,7 @@ Resources:
       AddonName: vpc-cni
       ClusterName: !Ref ClusterName
       ResolveConflicts: OVERWRITE
-      ConfigurationValues: '{"env":{"ENABLE_PREFIX_DELEGATION":"true","WARM_PREFIX_TARGET":"1","MINIMUM_IP_TARGET":"50","WARM_IP_TARGET":"10"}}'
+      ConfigurationValues: '{"enableNetworkPolicy":"true","env":{"ENABLE_PREFIX_DELEGATION":"true","WARM_PREFIX_TARGET":"1","MINIMUM_IP_TARGET":"50","WARM_IP_TARGET":"10"}}'
 
   CoreDnsAddon:
     Type: AWS::EKS::Addon
@@ -854,6 +854,59 @@ Resources:
       ServiceAccount: loki
       RoleArn: !GetAtt LokiRole.Arn
 
+  #####
+  # cert-manager IAM Role (IRSA)
+  # Allows cert-manager to manage Route53 TXT records for DNS-01 ACME challenges
+  # (Let's Encrypt certificate issuance + renewal)
+  #####
+  CertManagerRole:
+    Type: AWS::IAM::Role
+    DependsOn: OidcProvider
+    Properties:
+      RoleName: !Sub "${ClusterName}-cert-manager-role"
+      AssumeRolePolicyDocument:
+        Fn::Sub:
+          - |
+            {
+              "Version": "2012-10-17",
+              "Statement": [{
+                "Effect": "Allow",
+                "Principal": {
+                  "Federated": "arn:aws:iam::${AWS::AccountId}:oidc-provider/${OidcUrl}"
+                },
+                "Action": "sts:AssumeRoleWithWebIdentity",
+                "Condition": {
+                  "StringEquals": {
+                    "${OidcUrl}:aud": "sts.amazonaws.com",
+                    "${OidcUrl}:sub": "system:serviceaccount:cert-manager:cert-manager"
+                  }
+                }
+              }]
+            }
+          - OidcUrl: !Select [1, !Split ["https://", !GetAtt EksCluster.OpenIdConnectIssuerUrl]]
+      Policies:
+        - PolicyName: CertManagerRoute53Policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - route53:GetChange
+                Resource: "arn:aws:route53:::change/*"
+              - Effect: Allow
+                Action:
+                  - route53:ChangeResourceRecordSets
+                  - route53:ListResourceRecordSets
+                Resource: "arn:aws:route53:::hostedzone/*"
+              - Effect: Allow
+                Action:
+                  - route53:ListHostedZonesByName
+                  - route53:ListHostedZones
+                Resource: "*"
+      Tags:
+        - Key: ManagedBy
+          Value: EksClusterStack
+
 Outputs:
   ClusterName:
     Description: Name of the EKS cluster
@@ -914,6 +967,12 @@ Outputs:
     Value: !GetAtt ExternalDnsRole.Arn
     Export:
       Name: !Sub "${AWS::StackName}-ExternalDnsRoleArn"
+
+  CertManagerRoleArn:
+    Description: IAM role ARN for cert-manager (Route53 DNS-01 challenges)
+    Value: !GetAtt CertManagerRole.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-CertManagerRoleArn"
 
   ApplicationPodsRoleArn:
     Description: ARN of the IAM role for application pods
