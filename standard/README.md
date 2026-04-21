@@ -1,4 +1,4 @@
-# ec2 infra - CloudFormation Templates
+# aws-onboarding/standard - CloudFormation Templates
 
 This directory contains AWS CloudFormation templates for provisioning Rapticore infrastructure. Templates are organized into **active EKS templates** and **legacy EC2 templates**.
 
@@ -75,11 +75,12 @@ This directory contains AWS CloudFormation templates for provisioning Rapticore 
 
 ### Resources Created
 
+> **TLS note:** StandardStack no longer creates an ACM cert. Per-tenant TLS is
+> issued dynamically by cert-manager + Let's Encrypt inside the cluster
+> (see Freemium/helm/rapticore-tenant/templates/certificate.yaml).
+
 ```
 StandardStack
-├── TLS Certificate
-│   └── ACM Certificate (DNS-validated)
-│
 ├── SQS Queues (each with a Dead Letter Queue)
 │   ├── rapticore-vulnerability-<TENANT_ID>
 │   ├── rapticore-container-vulnerability-<TENANT_ID>
@@ -167,9 +168,14 @@ EksClusterStack
 │   ├── EKS Node Role (worker node permissions: SQS, S3, Bedrock, SES, AssumeRole)
 │   ├── EBS CSI Driver Role (IRSA - for persistent volumes)
 │   ├── Application Pods Role (Pod Identity - SQS, S3, Bedrock, SES)
-│   └── AWS Load Balancer Controller Role (IRSA - for NLB/ALB management)
-│       Note: CloudFormation creates the IAM role only. The controller
-│       itself is installed via Helm by setup-eks-cluster.sh.
+│   ├── AWS Load Balancer Controller Role (IRSA - for NLB/ALB management)
+│   ├── External DNS Role (IRSA - Route53 record management from Ingresses)
+│   ├── Cert Manager Role (IRSA - Route53 DNS-01 ACME challenges for Let's Encrypt)
+│   ├── Cluster Autoscaler Role (IRSA)
+│   ├── Fluent Bit Role (IRSA - CloudWatch Logs + Loki S3)
+│   └── Loki Role (IRSA via Pod Identity - chunks/ruler S3 bucket)
+│       Note: CloudFormation creates the IAM roles only. The controllers
+│       themselves are installed via Helm by setup-eks-cluster.sh.
 │
 ├── Security Group
 │   └── Cluster SG (HTTPS ingress + internal communication)
@@ -178,11 +184,13 @@ EksClusterStack
 │   └── Full API/audit/authenticator/controller/scheduler logging
 │
 ├── EKS Add-ons
-│   ├── vpc-cni (pod networking)
+│   ├── vpc-cni (pod networking; enableNetworkPolicy=true — enforces tenant NetworkPolicies)
 │   ├── coredns (DNS resolution)
 │   ├── kube-proxy (service networking)
 │   ├── aws-ebs-csi-driver (persistent volumes)
 │   └── eks-pod-identity-agent (AWS credential injection)
+│
+├── S3 Bucket (Loki log storage, per cluster)
 │
 ├── OIDC Provider (for IRSA - IAM Roles for Service Accounts)
 │
@@ -202,7 +210,13 @@ EksClusterStack
 | `OidcProviderArn` | OIDC provider ARN for IRSA |
 | `OidcProviderUrl` | OIDC provider URL (without `https://` prefix) |
 | `AwsLoadBalancerControllerRoleArn` | IAM role for LB controller (input to Helm) |
+| `ExternalDnsRoleArn` | IAM role for external-dns Route53 management |
+| `CertManagerRoleArn` | IAM role for cert-manager Route53 DNS-01 ACME challenges |
+| `ClusterAutoscalerRoleArn` | IAM role for cluster-autoscaler |
+| `FluentBitRoleArn` | IAM role for Fluent Bit (CloudWatch + Loki S3) |
 | `ApplicationPodsRoleArn` | IAM role for app pods via Pod Identity |
+| `LokiBucketName` | S3 bucket name for Loki log chunks/ruler |
+| `LokiRoleArn` | IAM role for Loki via Pod Identity |
 | `VpcId` | VPC ID used by the cluster |
 | `SubnetIds` | Subnet IDs used by the cluster |
 
@@ -310,22 +324,23 @@ The Lambda function (`Azure-Identity-pool-lambda`) is referenced in `StandardSta
 # 1. Deploy StandardStack via CloudFormation console
 #    Template: StandardStack.yaml
 #    Stack name: rapticore-<TENANT_ID>
+#    (No ACM cert validation needed — cert-manager + Let's Encrypt
+#     issues the TLS cert automatically during deploy-eks-tenant.sh.)
 
-# 2. Validate ACM certificate (see ACM console)
-
-# 3. Generate Helm values + deploy
+# 2. Generate Helm values + deploy
 cd Freemium
 ./bin/deploy-eks-tenant.sh <TENANT_ID>
 ```
 
 ### New account (no EKS cluster yet):
 ```bash
-# 1. Deploy EKS cluster
+# 1. Deploy EKS cluster (creates EksClusterStack + installs shared
+#    ingress-nginx, cert-manager, external-dns, observability stack)
 cd Freemium
 ./bin/setup-eks-cluster.sh \
   --vpc-id <VPC_ID> \
   --subnet-ids "<SUBNET_1>,<SUBNET_2>" \
-  --template-dir "../ec2 infra"
+  --template-dir "../aws-onboarding/standard"
 
 # 2. Then follow "New tenant" steps above
 ```
