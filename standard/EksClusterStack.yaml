@@ -345,9 +345,11 @@ Resources:
               - Effect: Allow
                 Action:
                   - s3:GetObject
+                  - s3:GetObjectVersion       # history bucket reads objects by versionId
                   - s3:PutObject
                   - s3:DeleteObject
                   - s3:ListBucket
+                  - s3:ListBucketVersions      # history bucket enumerates object versions
                 Resource:
                   - "arn:aws:s3:::vcs-content-*"
                   - "arn:aws:s3:::vcs-content-*/*"
@@ -357,6 +359,16 @@ Resources:
                   - "arn:aws:s3:::ore.c7n.remediation.policies/*"
                   - "arn:aws:s3:::rapticore-standard-tenants-postgres-db-backups"
                   - "arn:aws:s3:::rapticore-standard-tenants-postgres-db-backups/*"
+                  # App storage buckets — real AWS S3 (was LocalStack). Wildcards
+                  # cover every tenant's file/image/history/git-storage-<tenant>-<acct>.
+                  - "arn:aws:s3:::file-storage-*"
+                  - "arn:aws:s3:::file-storage-*/*"
+                  - "arn:aws:s3:::image-storage-*"
+                  - "arn:aws:s3:::image-storage-*/*"
+                  - "arn:aws:s3:::history-storage-*"
+                  - "arn:aws:s3:::history-storage-*/*"
+                  - "arn:aws:s3:::git-storage-*"
+                  - "arn:aws:s3:::git-storage-*/*"
               # Bedrock Access
               - Effect: Allow
                 Action:

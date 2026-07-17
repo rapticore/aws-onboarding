@@ -182,6 +182,65 @@ Resources:
         - Key: TenantId
           Value: !Ref TenantId
 
+  # App storage buckets — real AWS S3 (previously emulated in-cluster via
+  # LocalStack). The ${AWS::AccountId} suffix guarantees the otherwise-generic
+  # names are globally unique. history-storage is versioned (object history is
+  # keyed by S3 versionId; see glass-comb-api HistorySubscriber). The shared pod
+  # role grants <purpose>-storage-* (EksClusterStack ApplicationPodsRole).
+  FileStorageBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "file-storage-${TenantId}-${AWS::AccountId}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: TenantId
+          Value: !Ref TenantId
+
+  ImageStorageBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "image-storage-${TenantId}-${AWS::AccountId}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: TenantId
+          Value: !Ref TenantId
+
+  HistoryStorageBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "history-storage-${TenantId}-${AWS::AccountId}"
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: TenantId
+          Value: !Ref TenantId
+
+  GitStorageBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "git-storage-${TenantId}-${AWS::AccountId}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: TenantId
+          Value: !Ref TenantId
+
   #####
   # SQS Queue resources
   #####
@@ -723,6 +782,22 @@ Outputs:
   VcsContentBucketName:
     Description: Name of the VCS content S3 bucket
     Value: !Ref VcsContentBucket
+
+  FileStorageBucketName:
+    Description: Name of the file storage S3 bucket
+    Value: !Ref FileStorageBucket
+
+  ImageStorageBucketName:
+    Description: Name of the image storage S3 bucket
+    Value: !Ref ImageStorageBucket
+
+  HistoryStorageBucketName:
+    Description: Name of the (versioned) history storage S3 bucket
+    Value: !Ref HistoryStorageBucket
+
+  GitStorageBucketName:
+    Description: Name of the git storage S3 bucket
+    Value: !Ref GitStorageBucket
 
   VcsTriggerAppSecQueueURL:
     Description: URL of the VCS trigger appsec queue
