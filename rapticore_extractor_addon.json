@@ -157,6 +157,7 @@
     {
       "Action": [
         "ce:GetCostAndUsage",
+        "ce:GetCostAndUsageWithResources",
         "ce:GetCostForecast"
       ],
       "Effect": "Allow",
