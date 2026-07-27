@@ -201,13 +201,23 @@ Resources:
         SubnetIds: !Ref SubnetIds
         EndpointPublicAccess: !Ref EndpointPublicAccess
         EndpointPrivateAccess: !Ref EndpointPrivateAccess
+      # Control-plane logs to CloudWatch are DISABLED (2026-07-26, cost).
+      # They were ~$63/mo of USW2-VendedLog-Bytes — the single largest line of
+      # the CloudWatch bill — with no consumer: application logs ship to Loki
+      # via the aws-for-fluent-bit DaemonSet (loki output only), not CloudWatch.
+      #
+      # An EMPTY EnabledTypes array is the documented way to disable all types
+      # ("All log types are disabled if the array is empty"). The Logging /
+      # ClusterLogging / EnabledTypes keys must be RETAINED, not deleted: AWS
+      # requires them on update if the previous template had them. Applied live
+      # to both clusters via `aws eks update-cluster-config`; this keeps a
+      # future stack update from silently re-enabling them.
+      #
+      # To re-enable (e.g. if compliance wants the audit trail back), list the
+      # types here again — `Update requires: No interruption`.
       Logging:
         ClusterLogging:
-          EnabledTypes:
-            - Type: api
-            - Type: audit
-            - Type: authenticator
-            - Type: scheduler
+          EnabledTypes: []
       Tags:
         - Key: Name
           Value: !Ref ClusterName
