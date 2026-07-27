@@ -75,15 +75,133 @@ Resources:
   #####
   # Azure Web Identity Resources (Conditional)
   #####
-  AzureOpenIDConnectProvider:
-    Type: AWS::IAM::OIDCProvider
+  # An IAM OIDC provider is an AWS-ACCOUNT-SCOPED SINGLETON: IAM permits exactly
+  # one provider per issuer URL per account. Declaring it as a plain per-tenant
+  # `AWS::IAM::OIDCProvider` therefore breaks the moment a SECOND Rapticore
+  # tenant is onboarded against the SAME Azure tenant — the second stack fails
+  # with `EntityAlreadyExists` and rolls back. That is a shared resource
+  # modelled inside a per-tenant stack.
+  #
+  # This ensure-style custom resource adopts an existing provider instead of
+  # colliding with it, and NEVER deletes one on stack teardown because another
+  # tenant may still be using it. Both behaviours already exist in this
+  # template: the Cognito group handler below does get-then-create, and the CRS
+  # service user handler preserves the user on Delete.
+  AzureOidcProviderRole:
+    Type: AWS::IAM::Role
     Condition: HasAzureTenant
     Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: ManageAzureOidcProvider
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              # Create/List cannot be scoped to a resource that may not exist yet.
+              - Effect: Allow
+                Action:
+                  - iam:CreateOpenIDConnectProvider
+                  - iam:ListOpenIDConnectProviders
+                Resource: "*"
+              # Everything else is scoped to this Azure tenant's provider only.
+              - Effect: Allow
+                Action:
+                  - iam:GetOpenIDConnectProvider
+                  - iam:AddClientIDToOpenIDConnectProvider
+                  - iam:TagOpenIDConnectProvider
+                Resource: !Sub "arn:aws:iam::${AWS::AccountId}:oidc-provider/sts.windows.net/${AzureTenantId}"
+
+  AzureOidcProviderFunction:
+    Type: AWS::Lambda::Function
+    Condition: HasAzureTenant
+    Properties:
+      FunctionName: !Sub "AzureOidcProvider-${TenantId}"
+      Runtime: python3.11
+      Handler: index.handler
+      Role: !GetAtt AzureOidcProviderRole.Arn
+      Timeout: 60
+      Code:
+        ZipFile: |
+          import boto3
+          import cfnresponse
+
+
+          def _normalize(url):
+              """IAM stores the issuer without its scheme; compare on that basis."""
+              return url.split('://', 1)[-1].rstrip('/').lower()
+
+
+          def _find_existing(iam, url):
+              wanted = _normalize(url)
+              for provider in iam.list_open_id_connect_providers()['OpenIDConnectProviderList']:
+                  arn = provider['Arn']
+                  info = iam.get_open_id_connect_provider(OpenIDConnectProviderArn=arn)
+                  if _normalize(info['Url']) == wanted:
+                      return arn, info
+              return None, None
+
+
+          def handler(event, context):
+              try:
+                  props = event['ResourceProperties']
+                  url = props['Url']
+                  client_id = props['ClientId']
+                  thumbprint = props['Thumbprint']
+                  iam = boto3.client('iam')
+
+                  if event['RequestType'] == 'Delete':
+                      # Deliberately a no-op. The provider is account-scoped and
+                      # may still back another tenant's AzureWebIdentityRole.
+                      print('Delete: preserving shared OIDC provider for reuse')
+                      cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+                      return
+
+                  try:
+                      arn = iam.create_open_id_connect_provider(
+                          Url=url,
+                          ClientIDList=[client_id],
+                          ThumbprintList=[thumbprint],
+                      )['OpenIDConnectProviderArn']
+                      print(f'Created OIDC provider {arn}')
+                  except iam.exceptions.EntityAlreadyExistsException:
+                      arn, info = _find_existing(iam, url)
+                      if arn is None:
+                          raise Exception(
+                              f'IAM reports a provider for {url} already exists '
+                              'but it could not be found — check iam:ListOpenIDConnectProviders'
+                          )
+                      # Another tenant created it. Make sure OUR audience is trusted
+                      # too; client ids are additive, so this is safe for them.
+                      if client_id not in info.get('ClientIDList', []):
+                          iam.add_client_id_to_open_id_connect_provider(
+                              OpenIDConnectProviderArn=arn, ClientID=client_id
+                          )
+                          print(f'Added client id {client_id} to {arn}')
+                      print(f'Adopted existing OIDC provider {arn}')
+
+                  cfnresponse.send(
+                      event, context, cfnresponse.SUCCESS, {'Arn': arn}, physicalResourceId=arn
+                  )
+              except Exception as e:
+                  print(f'Error: {str(e)}')
+                  cfnresponse.send(event, context, cfnresponse.FAILED, {'Error': str(e)})
+
+  AzureOpenIDConnectProvider:
+    Type: Custom::AzureOidcProvider
+    Condition: HasAzureTenant
+    Properties:
+      ServiceToken: !GetAtt AzureOidcProviderFunction.Arn
       Url: !Sub "https://sts.windows.net/${AzureTenantId}/"
-      ClientIdList:
-        - !Sub "api://${AzureTenantId}"
-      ThumbprintList:
-        - "626d44e704d1ceabe3bf0d53397464ac8080142c"
+      ClientId: !Sub "api://${AzureTenantId}"
+      Thumbprint: "626d44e704d1ceabe3bf0d53397464ac8080142c"
 
   AzureWebIdentityRole:
     Type: AWS::IAM::Role
@@ -109,7 +227,7 @@ Resources:
               }
             ]
           }
-        - OIDCProvider: !Ref AzureOpenIDConnectProvider
+        - OIDCProvider: !GetAtt AzureOpenIDConnectProvider.Arn
           TenantId: !Ref AzureTenantId
 
       Policies:
@@ -778,6 +896,22 @@ Outputs:
     Description: URL of the real-time threat alert trigger azure queue
     Condition: HasAzureTenant
     Value: !GetAtt RealTimeThreatAlertTriggerAzureQueue.QueueUrl
+
+  AzureOidcProviderArn:
+    Description: >-
+      IAM OIDC provider trusted for this Azure tenant. Account-scoped and SHARED
+      across every Rapticore tenant onboarded against the same Azure tenant —
+      this stack adopts it if another stack already created it, and never
+      deletes it on teardown.
+    Condition: HasAzureTenant
+    Value: !GetAtt AzureOpenIDConnectProvider.Arn
+
+  AzureWebIdentityRoleArn:
+    Description: >-
+      Role the Azure RTTM function assumes via sts:AssumeRoleWithWebIdentity.
+      Use as `aws_role_arn` in the azure-onboarding tfvars.
+    Condition: HasAzureTenant
+    Value: !GetAtt AzureWebIdentityRole.Arn
 
   VcsContentBucketName:
     Description: Name of the VCS content S3 bucket
