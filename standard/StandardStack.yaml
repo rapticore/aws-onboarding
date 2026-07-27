@@ -106,18 +106,36 @@ Resources:
             Version: "2012-10-17"
             Statement:
               # Create/List cannot be scoped to a resource that may not exist yet.
+              #
+              # Get is here too, and MUST be "*": _find_existing() resolves the
+              # provider by listing every provider in the account and reading each
+              # one's Url. That necessarily calls Get on providers belonging to
+              # other things — notably the EKS cluster's own OIDC provider
+              # (oidc.eks.<region>.amazonaws.com/id/...). Scoping Get to just the
+              # Azure ARN made the scan fail with AccessDenied on the first
+              # unrelated provider it reached (2026-07-27, rapticore-azuretest).
+              # Get is read-only metadata (url, client ids, thumbprints), so "*"
+              # is an acceptable read scope; the MUTATING calls stay scoped below.
               - Effect: Allow
                 Action:
                   - iam:CreateOpenIDConnectProvider
                   - iam:ListOpenIDConnectProviders
+                  - iam:GetOpenIDConnectProvider
                 Resource: "*"
-              # Everything else is scoped to this Azure tenant's provider only.
+              # Mutating calls are scoped to this Azure tenant's provider only.
+              #
+              # Both slash forms are listed on purpose: the Url we create is
+              # "https://sts.windows.net/<tid>/" (trailing slash), and IAM keeps
+              # that slash in the ARN — the live dev provider really is
+              # ".../oidc-provider/sts.windows.net/<tid>/". A resource pattern
+              # without the trailing slash silently matches nothing.
               - Effect: Allow
                 Action:
-                  - iam:GetOpenIDConnectProvider
                   - iam:AddClientIDToOpenIDConnectProvider
                   - iam:TagOpenIDConnectProvider
-                Resource: !Sub "arn:aws:iam::${AWS::AccountId}:oidc-provider/sts.windows.net/${AzureTenantId}"
+                Resource:
+                  - !Sub "arn:aws:iam::${AWS::AccountId}:oidc-provider/sts.windows.net/${AzureTenantId}"
+                  - !Sub "arn:aws:iam::${AWS::AccountId}:oidc-provider/sts.windows.net/${AzureTenantId}/"
 
   AzureOidcProviderFunction:
     Type: AWS::Lambda::Function
