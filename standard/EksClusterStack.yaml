@@ -201,23 +201,51 @@ Resources:
         SubnetIds: !Ref SubnetIds
         EndpointPublicAccess: !Ref EndpointPublicAccess
         EndpointPrivateAccess: !Ref EndpointPrivateAccess
-      # Control-plane logs to CloudWatch are DISABLED (2026-07-26, cost).
-      # They were ~$63/mo of USW2-VendedLog-Bytes — the single largest line of
-      # the CloudWatch bill — with no consumer: application logs ship to Loki
-      # via the aws-for-fluent-bit DaemonSet (loki output only), not CloudWatch.
+      # Control-plane logging — a DELIBERATE SUBSET, not all-or-nothing.
       #
-      # An EMPTY EnabledTypes array is the documented way to disable all types
-      # ("All log types are disabled if the array is empty"). The Logging /
-      # ClusterLogging / EnabledTypes keys must be RETAINED, not deleted: AWS
-      # requires them on update if the previous template had them. Applied live
-      # to both clusters via `aws eks update-cluster-config`; this keeps a
-      # future stack update from silently re-enabling them.
+      # History. All five types were on until 2026-07-26, when they were turned
+      # off wholesale for cost. Measured from the AWS/Logs IncomingBytes metric on
+      # /aws/eks/rapticore-eks-dev/cluster over the fortnight before that date:
+      # a steady ~1.9 GiB/DAY on the dev cluster alone (1,881 / 1,926 / 1,877 /
+      # 1,869 MiB on consecutive days). At us-west-2 ingestion rates that is
+      # ~$28/mo per cluster, ~$57/mo across dev + prod — which matches the
+      # "single largest CloudWatch line" the original note described.
       #
-      # To re-enable (e.g. if compliance wants the audit trail back), list the
-      # types here again — `Update requires: No interruption`.
+      # But turning off ALL five threw away cheap signal to remove expensive
+      # signal. The volume is dominated by `audit` (one record per API request)
+      # and `api`; `authenticator`, `controllerManager` and `scheduler` are a small
+      # fraction of it and are exactly the logs that explain why a pod was placed,
+      # evicted, throttled, or never scheduled — the questions that come up in
+      # practice. Enabling only those three is estimated at a few dollars a month
+      # per cluster rather than ~$28.
+      #
+      # ⚠️ That split is an ESTIMATE, not a measurement — per-type volumes were
+      # never captured before the shutdown. Re-read IncomingBytes on this log
+      # group a week after this lands and correct these notes with real numbers:
+      #   aws cloudwatch get-metric-statistics --namespace AWS/Logs \
+      #     --metric-name IncomingBytes --period 86400 --statistics Sum \
+      #     --dimensions Name=LogGroupName,Value=/aws/eks/<cluster>/cluster
+      #
+      # `audit` and `api` stay OFF. Turn them on deliberately and temporarily when
+      # investigating a specific incident, then turn them back off — that is a
+      # `Update requires: No interruption` change, so it is safe mid-flight.
+      #
+      # Retention on /aws/eks/<cluster>/cluster is 30 days and is NOT managed here:
+      # EKS creates that log group implicitly, so CloudFormation does not own it and
+      # cannot adopt it without a stack import. Set it out of band:
+      #   aws logs put-retention-policy --log-group-name /aws/eks/<cluster>/cluster \
+      #     --retention-in-days 7
+      # 7 days is the right window for debugging; nothing here is a compliance record.
+      #
+      # The Logging / ClusterLogging / EnabledTypes keys must be RETAINED, not
+      # deleted: AWS requires them on update if the previous template had them.
+      # An EMPTY EnabledTypes array is the documented way to disable everything.
       Logging:
         ClusterLogging:
-          EnabledTypes: []
+          EnabledTypes:
+            - Type: authenticator
+            - Type: controllerManager
+            - Type: scheduler
       Tags:
         - Key: Name
           Value: !Ref ClusterName
