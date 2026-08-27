@@ -219,12 +219,25 @@ Resources:
       # practice. Enabling only those three is estimated at a few dollars a month
       # per cluster rather than ~$28.
       #
-      # ⚠️ That split is an ESTIMATE, not a measurement — per-type volumes were
-      # never captured before the shutdown. Re-read IncomingBytes on this log
-      # group a week after this lands and correct these notes with real numbers:
+      # MEASURED 2026-08-27 on rapticore-eks-dev, replacing the estimate this note carried.
+      # IncomingBytes on /aws/eks/rapticore-eks-dev/cluster, calendar days:
+      #     2026-08-16 .. 08-23   no datapoints at all  (all five types off)
+      #     2026-08-26            2.68 MiB              (first FULL day on these three)
+      # ~2.7 MiB/day is ~0.08 GiB/month, i.e. a few CENTS per cluster per month at us-west-2
+      # ingestion rates. Against the ~1,900 MiB/day this group carried before the 2026-07-26
+      # shutdown, `audit` + `api` were ~99.9% of the volume. The estimate said 'a few dollars
+      # a month'; the truth is far below that. These three are effectively free, and the cost
+      # decision rests entirely on keeping `audit`/`api` off.
+      #
+      # SAMPLE SIZE: one full day, not the week originally asked for. The gap between 2.7 MiB
+      # and the ~1,900 MiB baseline is three orders of magnitude, so more data cannot change
+      # the conclusion — but re-read it if these types are ever expected to grow:
       #   aws cloudwatch get-metric-statistics --namespace AWS/Logs \
       #     --metric-name IncomingBytes --period 86400 --statistics Sum \
       #     --dimensions Name=LogGroupName,Value=/aws/eks/<cluster>/cluster
+      # Align --start-time to MIDNIGHT: CloudWatch buckets an 86400s period from start-time,
+      # not from 00:00, so an arbitrary start reports shifted 24h windows that disagree
+      # between runs. That cost me two contradictory readings before I noticed.
       #
       # `audit` and `api` stay OFF. Turn them on deliberately and temporarily when
       # investigating a specific incident, then turn them back off — that is a
